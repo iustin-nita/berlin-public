@@ -3,7 +3,7 @@ import { DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { Asset } from 'expo-asset';
 import * as SplashScreen from 'expo-splash-screen';
 import * as React from 'react';
-import { useColorScheme } from 'react-native';
+import { LogBox, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Navigation } from './navigation';
 
@@ -17,6 +17,13 @@ SplashScreen.preventAutoHideAsync();
 
 export function App() {
   const colorScheme = useColorScheme();
+
+  // Silence noisy NativeEventEmitter warnings from third-party modules in dev
+  React.useEffect(() => {
+    LogBox.ignoreLogs([
+      'new NativeEventEmitter()',
+    ]);
+  }, []);
 
   const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
 

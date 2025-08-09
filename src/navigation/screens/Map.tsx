@@ -34,11 +34,13 @@ export function MapScreen() {
   const [activeDataset, setActiveDataset] = React.useState<'fountains' | 'toilets'>('fountains');
   const [loading, setLoading] = React.useState(true);
   const [useDecorWms, setUseDecorWms] = React.useState(false);
+  // Render map layers only after the style is fully loaded to avoid Android dev-reload native view tag errors
+  const [styleLoaded, setStyleLoaded] = React.useState(false);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
-  const [cameraZoom, setCameraZoom] = React.useState<number>(12);
+  const [cameraZoom, setCameraZoom] = React.useState<number>(3);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -100,6 +102,8 @@ export function MapScreen() {
           decorRes ? decorRes.json().catch(() => null) : Promise.resolve(null),
           toiletsRes ? toiletsRes.json().catch(() => null) : Promise.resolve(null),
         ]);
+
+        console.log('toiletsGeo', toiletsGeo.features[0]);
 
         const mapCollection = (
           geo: any,
@@ -354,90 +358,95 @@ export function MapScreen() {
       <Mapbox.MapView
         style={styles.map}
         styleURL={Mapbox.StyleURL.Light}
+        onDidFinishLoadingStyle={() => setStyleLoaded(true)}
         onCameraChanged={(e: any) => {
           const z = e?.properties?.zoom;
           if (typeof z === 'number') setCameraZoom(z);
         }}
       >
-        {/* Register custom images used by SymbolLayer icons */}
-        <Mapbox.Images
-          images={{
-            fountainDrink: require('../../../assets/water-drop.png'),
-            fountainDecor: require('../../../assets/decor.png'),
-            toilet: require('../../../assets/toilet.png'),
-          }}
-        />
-        {/* Zierbrunnen WMS fallback overlay (raster). Drawn below vector pins. */}
-        {DATASETS.fountainsDecorative && useDecorWms ? (
-          <Mapbox.RasterSource
-            id="decorWms"
-            tileUrlTemplates={[
-              'https://gdi.berlin.de/services/wms/zierbrunnen?service=WMS&version=1.3.0&request=GetMap&format=image/png&transparent=true&layers=zierbrunnen&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256',
-            ]}
-            tileSize={256}
-          >
-            <Mapbox.RasterLayer id="decorWmsLayer" style={{ rasterOpacity: 0.8 }} />
-          </Mapbox.RasterSource>
-        ) : null}
-        <Mapbox.Camera
-          ref={cameraRef}
-          centerCoordinate={initialCenter}
-          zoomLevel={12}
-          animationMode="flyTo"
-          animationDuration={800}
-        />
-        {/* User location (only render if permission granted) */}
-        {hasLocationPermission ? <Mapbox.UserLocation /> : null}
+        {styleLoaded ? (
+          <>
+            {/* Register custom images used by SymbolLayer icons */}
+            <Mapbox.Images
+              images={{
+                fountainDrink: require('../../../assets/water-drop.png'),
+                fountainDecor: require('../../../assets/decor.png'),
+                toilet: require('../../../assets/toilet.png'),
+              }}
+            />
+            {/* Zierbrunnen WMS fallback overlay (raster). Drawn below vector pins. */}
+            {DATASETS.fountainsDecorative && useDecorWms ? (
+              <Mapbox.RasterSource
+                id="decorWms"
+                tileUrlTemplates={[
+                  'https://gdi.berlin.de/services/wms/zierbrunnen?service=WMS&version=1.3.0&request=GetMap&format=image/png&transparent=true&layers=zierbrunnen&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256',
+                ]}
+                tileSize={256}
+              >
+                <Mapbox.RasterLayer id="decorWmsLayer" style={{ rasterOpacity: 0.8 }} />
+              </Mapbox.RasterSource>
+            ) : null}
+            <Mapbox.Camera
+              ref={cameraRef}
+              centerCoordinate={initialCenter}
+              zoomLevel={12}
+              animationMode="flyTo"
+              animationDuration={800}
+            />
+            {/* User location (only render if permission granted) */}
+            {hasLocationPermission ? <Mapbox.UserLocation /> : null}
 
-        {/* Pins via ShapeSource + SymbolLayers filtered by current dataset */}
-        <Mapbox.ShapeSource
-          id="fountains"
-          ref={sourceRef}
-          shape={featureCollection as any}
-          cluster
-          clusterRadius={44}
-          clusterMaxZoomLevel={13}
-          hitbox={{ width: 30, height: 30 } as any}
-          onPress={(e) => {
-            const feat = e.features?.[0];
-            if (!feat) return;
-            const props: any = feat.properties;
-            // If cluster, expand
-            if (props?.cluster) {
-              const coord = getFeatureCoordinate(feat);
-              const nextZoom = Math.min(Math.max(cameraZoom + 2, 13), 17);
-              if (coord && (cameraRef.current as any)?.setCamera) {
-                (cameraRef.current as any).setCamera({
-                  centerCoordinate: coord as any,
-                  zoomLevel: nextZoom,
-                  animationMode: 'flyTo',
-                  animationDuration: 500,
-                });
-              } else if (coord) {
-                (cameraRef.current as any)?.flyTo(coord as any, 500);
-              }
-              return;
-            }
-            // If multiple features under tap, show quick chooser
-            const nonCluster = (e.features || []).filter((f: any) => !f.properties?.cluster);
-            if (nonCluster.length > 1) {
-              const list: FeatureProps[] = [];
-              for (const f of nonCluster.slice(0, 6)) {
-                const id = String((f.properties as any)?.id ?? f.id);
+            {/* Pins via ShapeSource + SymbolLayers filtered by current dataset */}
+            <Mapbox.ShapeSource
+              id="fountains"
+              ref={sourceRef}
+              shape={featureCollection as any}
+              cluster
+              clusterRadius={44}
+              clusterMaxZoomLevel={13}
+              hitbox={{ width: 30, height: 30 } as any}
+              onPress={(e) => {
+                const feat = e.features?.[0];
+                if (!feat) return;
+                const props: any = feat.properties;
+                // If cluster, expand
+                if (props?.cluster) {
+                  const coord = getFeatureCoordinate(feat);
+                  const nextZoom = Math.min(Math.max(cameraZoom + 2, 13), 17);
+                  if (coord && (cameraRef.current as any)?.setCamera) {
+                    (cameraRef.current as any).setCamera({
+                      centerCoordinate: coord as any,
+                      zoomLevel: nextZoom,
+                      animationMode: 'flyTo',
+                      animationDuration: 500,
+                    });
+                  } else if (coord) {
+                    (cameraRef.current as any)?.flyTo(coord as any, 500);
+                  }
+                  return;
+                }
+                // If multiple features under tap, show quick chooser
+                const nonCluster = (e.features || []).filter((f: any) => !f.properties?.cluster);
+                if (nonCluster.length > 1) {
+                  const list: FeatureProps[] = [];
+                  for (const f of nonCluster.slice(0, 6)) {
+                    const id = String((f.properties as any)?.id ?? f.id);
+                    const found = features.find((it) => it.id === id);
+                    if (found) list.push(found);
+                  }
+                  setCandidates(list);
+                } else {
+                  setCandidates([]);
+                }
+                const id = String(props?.id ?? feat.id);
                 const found = features.find((it) => it.id === id);
-                if (found) list.push(found);
-              }
-              setCandidates(list);
-            } else {
-              setCandidates([]);
-            }
-            const id = String(props?.id ?? feat.id);
-            const found = features.find((it) => it.id === id);
-            if (found) setSelected(found);
-          }}
-        >
-           {shapeLayers}
-        </Mapbox.ShapeSource>
+                if (found) setSelected(found);
+              }}
+            >
+               {shapeLayers}
+            </Mapbox.ShapeSource>
+          </>
+        ) : null}
       </Mapbox.MapView>
 
       {loading && (
@@ -550,7 +559,7 @@ export function MapScreen() {
                   ? 'Drinking water fountain'
                   : selected.type === 'decorative'
                   ? 'Decorative fountain'
-                  : 'Water fountain (non-drinkable)'}
+                  : 'Public toilet'}
               </Text>
             </View>
           ) : (

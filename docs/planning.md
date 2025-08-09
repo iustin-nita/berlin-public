@@ -156,6 +156,10 @@ Before design, secure accurate fountain location data:
   * Ornamental: `assets/decor.png`
   * Toilets: `assets/toilet.png`
 * Interaction: tap marker opens a bottom sheet with title and short meta.
+* Selection affordance: enlarged icon (1.2x) and subtle halo ring.
+* Dense areas: clustering enabled (circle + count), tap-to-zoom into clusters.
+* Overlap disambiguation: small chooser appears when multiple features are under the tap.
+* Single-dataset view: top segmented toggle shows either Fountains or Toilets (never both). Switching clears selection.
 * Location: asks once on first launch; recenter FAB uses camera `flyTo`.
 * Dataset toggles: top-level `DATASETS` flags to enable/disable sources (drinking, decorative, toilets) without code changes to the render tree.
 * Config: migrated to `app.config.ts`; Mapbox downloads token set via plugin; linking scheme `berlinfountains://`.
@@ -164,8 +168,8 @@ Before design, secure accurate fountain location data:
 
 * Style bottom sheet to match mock (typography, spacing, optional image).
 * Better permission UX: disabled state + prompt to enable in settings when denied.
-* Light clustering for performance when zoomed out (if needed).
-* Expose dataset toggles in UI (dev settings) instead of hardcoded flags.
+* Polish cluster visuals and toggle styles.
+* Optional: tap on empty map to clear selection; track last-used dataset.
 
 ### Deferred (after Phase 1)
 
