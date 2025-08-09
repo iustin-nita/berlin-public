@@ -2,7 +2,7 @@ import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 type FeatureProps = {
@@ -12,6 +12,28 @@ type FeatureProps = {
   coordinates: [number, number];
   type?: 'drinking' | 'decorative' | 'toilet';
   imageUrl?: string;
+  // Optional structured metadata for toilets (rendered in details sheet)
+  toilet?: {
+    operator?: string;
+    district?: string;
+    hours?: string;
+    fee?: number | null;
+    payment?: string;
+    hasChangingTable?: boolean | null;
+    barrierFree?: boolean | null;
+    barrierReduced?: boolean | null;
+  };
+  // Optional metadata for drinking fountains
+  drinking?: {
+    district?: string;
+    yearBuilt?: number | null;
+    fountainType?: string;
+    restrictions?: string;
+    info?: string;
+    infoUrl?: string | null;
+    number?: number | null;
+    postalCode?: number | null;
+  };
 };
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
@@ -41,6 +63,33 @@ export function MapScreen() {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
+
+  const handleOpenUrl = React.useCallback(async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('[Map] Failed to open URL', e);
+    }
+  }, []);
+
+  // Clean "Info" text by stripping any embedded URL and trailing "Link:" label
+  const getSanitizedInfo = React.useCallback((info?: string, url?: string) => {
+    if (!info) return '';
+    let text = String(info).trim();
+    // Strip leading generic labels like "Info:" or "Informationen:"
+    text = text.replace(/^\s*(info(?:rmationen)?)[\s:]+/i, '').trim();
+    if (url) {
+      text = text.replace(url, '').trim();
+    }
+    // Remove a leftover trailing ", Link:" (with any spaces) if present
+    text = text.replace(/[,\s]*Link\s*:\s*$/i, '').trim();
+    // Collapse excess spaces
+    text = text.replace(/\s{2,}/g, ' ');
+    return text;
+  }, []);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -103,7 +152,6 @@ export function MapScreen() {
           toiletsRes ? toiletsRes.json().catch(() => null) : Promise.resolve(null),
         ]);
 
-        console.log('toiletsGeo', toiletsGeo.features[0]);
 
         const mapCollection = (
           geo: any,
@@ -120,21 +168,65 @@ export function MapScreen() {
               if (!coords || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') {
                 return null;
               }
+              const props: any = f?.properties ?? {};
               const name: string =
-                f?.properties?.standort ||
-                f?.properties?.name ||
-                f?.properties?.bezeichnung ||
-                f?.properties?.anlage ||
-                f?.properties?.titel ||
-                f?.properties?.objekt ||
+                props?.standort ||
+                props?.name ||
+                props?.bezeichnung ||
+                props?.anlage ||
+                props?.titel ||
+                props?.objekt ||
                 'Fountain';
-              return {
+              const common: FeatureProps = {
                 id: String(f.id ?? idx),
                 title: name,
-                description: f?.properties?.bezirk || f?.properties?.ortsteil || undefined,
+                description: props?.bezirk || props?.ortsteil || undefined,
                 coordinates: coords,
                 type,
-              } as FeatureProps;
+              };
+              if (type === 'drinking') {
+                const parseUrl = (text: any): string | null => {
+                  if (typeof text !== 'string') return null;
+                  const m = text.match(/https?:\/\/\S+/);
+                  return m ? m[0].trim() : null;
+                };
+                const toNum = (v: any): number | null => {
+                  if (typeof v === 'number') return v;
+                  const n = Number(v);
+                  return Number.isFinite(n) ? n : null;
+                };
+                (common as any).drinking = {
+                  district: props?.bezirk || undefined,
+                  yearBuilt: toNum(props?.baujahr),
+                  fountainType: props?.trinkbrunnenart || undefined,
+                  restrictions: props?.einschraenkungen || undefined,
+                  info: props?.informationen || undefined,
+                  infoUrl: parseUrl(props?.informationen),
+                  number: toNum(props?.nummer),
+                  postalCode: toNum(props?.postleitzahl),
+                } as FeatureProps['drinking'];
+              }
+              if (type === 'toilet') {
+                const toBool = (v: any): boolean | null => {
+                  const s = typeof v === 'string' ? v.toLowerCase() : v;
+                  if (s === 'ja' || s === true) return true;
+                  if (s === 'nein' || s === false) return false;
+                  return null;
+                };
+                const feeRaw = props?.nutzungsentgelt;
+                const feeNum = typeof feeRaw === 'number' ? feeRaw : feeRaw != null ? Number(feeRaw) : null;
+                (common as any).toilet = {
+                  operator: props?.betreiber || undefined,
+                  district: props?.bezirk || undefined,
+                  hours: props?.oeffnungszeiten || undefined,
+                  fee: Number.isFinite(feeNum) ? feeNum : null,
+                  payment: props?.zahlungsart || undefined,
+                  hasChangingTable: toBool(props?.wickeltisch),
+                  barrierFree: toBool(props?.barrierefrei),
+                  barrierReduced: toBool(props?.barrierearm),
+                } as FeatureProps['toilet'];
+              }
+              return common as FeatureProps;
             })
             .filter(Boolean) as FeatureProps[];
         };
@@ -541,26 +633,88 @@ export function MapScreen() {
       {/* Bottom sheet for details */}
       <BottomSheet
         ref={bottomSheetRef}
-        snapPoints={['35%']}
+        snapPoints={['38%', '68%']}
         index={-1}
         enablePanDownToClose
+        handleIndicatorStyle={styles.sheetHandle}
         onClose={() => setSelected(null)}
       >
-        <BottomSheetView style={styles.sheetContent}>
+          <BottomSheetView style={styles.sheetContent}>
           {selected ? (
             <View>
-              <Text style={styles.title}>{selected.title}</Text>
-              {selected.description ? (
-                <Text style={styles.subtitle}>{selected.description}</Text>
-              ) : null}
-              <View style={{ height: 8 }} />
-              <Text style={styles.meta}>
-                {selected.type === 'drinking'
-                  ? 'Drinking water fountain'
-                  : selected.type === 'decorative'
-                  ? 'Decorative fountain'
-                  : 'Public toilet'}
-              </Text>
+              {/* Header with type pill, title, subtitle, distance and favorite */}
+              <View style={styles.headerSection}>
+                <View style={{ flex: 1 }}>
+                  <View
+                    style={[
+                      styles.typePill,
+                      selected.type === 'decorative' ? styles.typePillDecor :
+                      selected.type === 'toilet' ? styles.typePillToilet : styles.typePillDrink,
+                    ]}
+                  >
+                    <Text style={styles.typePillText}>
+                      {selected.type === 'toilet'
+                        ? 'Public Toilet'
+                        : selected.type === 'decorative'
+                        ? 'Decorative Fountain'
+                        : 'Drinking Water'}
+                    </Text>
+                  </View>
+                  <Text style={styles.title}>{selected.title || 'Water Source'}</Text>
+                  {selected.description ? (
+                    <Text style={styles.subtitle}>{selected.description}</Text>
+                  ) : null}
+                  <View style={styles.distanceRow}>
+                    <Text style={styles.distanceText}>📍 340m · 4 min walk</Text>
+                  </View>
+                </View>
+                <Pressable style={styles.favButton} accessibilityRole="button">
+                  <Text style={{ fontSize: 18 }}>⭐</Text>
+                </Pressable>
+              </View>
+
+              {/* Image placeholder */}
+              <View style={styles.imageCard}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontSize: 28, opacity: 0.5 }}>📷</Text>
+                  <Text style={styles.imageText}>Add a photo</Text>
+                </View>
+              </View>
+
+              {/* Metadata row (placeholders) */}
+              <View style={styles.metaRow}>
+                <View style={styles.metaItemRow}><Text>🕐</Text><Text style={styles.meta}>Always available</Text></View>
+                <View style={styles.metaItemRow}><Text>♿</Text><Text style={styles.meta}>Accessible</Text></View>
+                <View style={styles.metaItemRow}><Text>❄️</Text><Text style={styles.meta}>Winter: Off</Text></View>
+              </View>
+
+              {/* Community status */}
+              <View style={styles.statusCard}>
+                <View style={styles.statusHeader}>
+                  <Text style={styles.statusLabel}>Community Status</Text>
+                  <View style={styles.statusBadge}><Text style={styles.statusBadgeText}>✓ Working · 2 days ago</Text></View>
+                </View>
+                <View style={styles.voteRow}>
+                  <Pressable style={[styles.voteButton, styles.voteYes]} accessibilityRole="button">
+                    <Text style={styles.voteText}>👍 Working</Text>
+                    <Text style={styles.voteCount}>(127)</Text>
+                  </Pressable>
+                  <Pressable style={[styles.voteButton, styles.voteNo]} accessibilityRole="button">
+                    <Text style={styles.voteText}>👎 Not Working</Text>
+                    <Text style={styles.voteCount}>(3)</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Actions */}
+              <View style={styles.actionsRow}>
+                <Pressable style={[styles.actionButton, styles.primaryAction]} accessibilityRole="button">
+                  <Text style={styles.actionText}>🧭 Navigate</Text>
+                </Pressable>
+                <Pressable style={[styles.actionButton, styles.secondaryAction]} accessibilityRole="button">
+                  <Text style={[styles.actionText, styles.secondaryActionText]}>📤 Share</Text>
+                </Pressable>
+              </View>
             </View>
           ) : (
             <View />
@@ -586,6 +740,36 @@ const styles = StyleSheet.create({
   sheetContent: {
     padding: 16,
   },
+  sheetHandle: {
+    backgroundColor: '#E0E0E0',
+  },
+  headerSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  typePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  typePillDrink: {
+    backgroundColor: '#E3F2FD',
+  },
+  typePillDecor: {
+    backgroundColor: '#FFF3E0',
+  },
+  typePillToilet: {
+    backgroundColor: '#E0F2F1',
+  },
+  typePillText: {
+    color: '#1f2937',
+    fontWeight: '600',
+    fontSize: 12,
+  },
   recenterButton: {
     position: 'absolute',
     right: 16,
@@ -607,12 +791,132 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
   },
+  distanceRow: {
+    marginTop: 6,
+  },
+  distanceText: {
+    color: '#475569',
+    fontWeight: '500',
+  },
+  favButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   subtitle: {
     color: '#707070',
     marginTop: 2,
   },
   meta: {
     color: '#4a4a4a',
+  },
+  link: {
+    color: '#1d4ed8',
+    textDecorationLine: 'underline',
+  },
+  imageCard: {
+    height: 140,
+    borderRadius: 12,
+    backgroundColor: '#E8F2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  imageText: {
+    color: '#1d4ed8',
+    fontWeight: '500',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  metaItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  statusLabel: {
+    color: '#6b7280',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  statusBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  statusBadgeText: {
+    color: '#2E7D32',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  voteRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  voteButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voteYes: {
+    backgroundColor: '#E8F5E9',
+  },
+  voteNo: {
+    backgroundColor: '#FFEBEE',
+  },
+  voteText: {
+    fontWeight: '700',
+    color: '#334155',
+  },
+  voteCount: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryAction: {
+    backgroundColor: '#1976D2',
+  },
+  secondaryAction: {
+    backgroundColor: '#E8F5E9',
+  },
+  actionText: {
+    color: 'white',
+    fontWeight: '700',
+  },
+  secondaryActionText: {
+    color: '#2E7D32',
   },
   choiceBar: {
     position: 'absolute',
