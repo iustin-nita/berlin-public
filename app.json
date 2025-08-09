@@ -31,6 +31,12 @@
           "image": "./assets/splash-icon.png"
         }
       ],
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "sk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbWUzeWxrbnkwYmphMmpzOTh1Z2p0dTAxIn0.itJMp15YV5sX8ZzcW2HRxg"
+        }
+      ],
       "react-native-edge-to-edge"
     ]
   }
