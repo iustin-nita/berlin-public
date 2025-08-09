@@ -31,6 +31,7 @@ export function MapScreen() {
   const [features, setFeatures] = React.useState<FeatureProps[]>([]);
   const [selected, setSelected] = React.useState<FeatureProps | null>(null);
   const [candidates, setCandidates] = React.useState<FeatureProps[]>([]);
+  const [activeDataset, setActiveDataset] = React.useState<'fountains' | 'toilets'>('fountains');
   const [loading, setLoading] = React.useState(true);
   const [useDecorWms, setUseDecorWms] = React.useState(false);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
@@ -194,10 +195,16 @@ export function MapScreen() {
 
   const initialCenter = userLocation ?? BERLIN_CENTER;
 
+  const filteredFeatures = React.useMemo(() => {
+    return features.filter((f) =>
+      activeDataset === 'fountains' ? f.type === 'drinking' || f.type === 'decorative' : f.type === 'toilet'
+    );
+  }, [features, activeDataset]);
+
   const featureCollection = React.useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: features.map((f) => ({
+      features: filteredFeatures.map((f) => ({
         type: 'Feature',
         id: f.id,
         properties: {
@@ -212,7 +219,13 @@ export function MapScreen() {
         },
       })),
     } as const;
-  }, [features]);
+  }, [filteredFeatures]);
+
+  // Clear selection when switching dataset so hidden selections don't linger
+  React.useEffect(() => {
+    setSelected(null);
+    setCandidates([]);
+  }, [activeDataset]);
 
   // Selected feature id (string or empty string for no selection).
   const selectedId = selected?.id ?? '';
@@ -376,7 +389,7 @@ export function MapScreen() {
         {/* User location (only render if permission granted) */}
         {hasLocationPermission ? <Mapbox.UserLocation /> : null}
 
-        {/* Pins via ShapeSource + SymbolLayers filtered by type */}
+        {/* Pins via ShapeSource + SymbolLayers filtered by current dataset */}
         <Mapbox.ShapeSource
           id="fountains"
           ref={sourceRef}
@@ -423,7 +436,7 @@ export function MapScreen() {
             if (found) setSelected(found);
           }}
         >
-          {shapeLayers}
+           {shapeLayers}
         </Mapbox.ShapeSource>
       </Mapbox.MapView>
 
@@ -432,6 +445,48 @@ export function MapScreen() {
           <ActivityIndicator />
         </View>
       )}
+
+      {/* Dataset toggle: only one dataset visible at a time */}
+      <View style={styles.toggleBar} pointerEvents="box-none">
+        <View style={styles.togglePill}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Show fountains"
+            onPress={() => setActiveDataset('fountains')}
+            style={[
+              styles.toggleItem,
+              activeDataset === 'fountains' ? styles.toggleItemActive : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                activeDataset === 'fountains' ? styles.toggleTextActive : null,
+              ]}
+            >
+              Fountains
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Show toilets"
+            onPress={() => setActiveDataset('toilets')}
+            style={[
+              styles.toggleItem,
+              activeDataset === 'toilets' ? styles.toggleItemActive : null,
+            ]}
+          >
+            <Text
+              style={[
+                styles.toggleText,
+                activeDataset === 'toilets' ? styles.toggleTextActive : null,
+              ]}
+            >
+              Toilets
+            </Text>
+          </Pressable>
+        </View>
+      </View>
       {/* Small chooser when multiple features overlap under the tap */}
       {candidates.length > 1 && (
         <View style={styles.choiceBar}>
@@ -581,6 +636,40 @@ const styles = StyleSheet.create({
   },
   choiceText: {
     color: '#102a43',
+  },
+  toggleBar: {
+    position: 'absolute',
+    top: 12,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  togglePill: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderRadius: 999,
+    padding: 4,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  toggleItem: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+  },
+  toggleItemActive: {
+    backgroundColor: '#e6f0ff',
+  },
+  toggleText: {
+    color: '#334155',
+    fontWeight: '500',
+  },
+  toggleTextActive: {
+    color: '#1d4ed8',
+    fontWeight: '700',
   },
 });
 
