@@ -63,17 +63,34 @@ export function MapScreen() {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
+  // Temporary visual-only flag: hide the photo placeholder section
+  const SHOW_IMAGE_PLACEHOLDER = false;
 
-  const handleOpenUrl = React.useCallback(async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      }
-    } catch (e) {
-      if (__DEV__) console.warn('[Map] Failed to open URL', e);
-    }
-  }, []);
+  // Compute distance and simple walking ETA from user location to selected feature
+  const distanceLine = React.useMemo(() => {
+    if (!userLocation || !selected) return '';
+    const [userLng, userLat] = userLocation;
+    const [destLng, destLat] = selected.coordinates;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const R = 6371000; // meters
+    const dLat = toRad(destLat - userLat);
+    const dLng = toRad(destLng - userLng);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(userLat)) * Math.cos(toRad(destLat)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const meters = R * c;
+    const formatDistance = (m: number) => {
+      if (m < 950) return `${Math.round(m)} m`;
+      const km = m / 1000;
+      const fixed = km >= 10 ? km.toFixed(0) : km.toFixed(1);
+      return `${fixed} km`;
+    };
+    // Assume ~4.5 km/h walking speed → 75 m/min
+    const minutes = Math.max(1, Math.round(meters / 75));
+    return `📍 ${formatDistance(meters)} · ${minutes} min walk`;
+  }, [userLocation, selected]);
 
   // Clean "Info" text by stripping any embedded URL and trailing "Link:" label
   const getSanitizedInfo = React.useCallback((info?: string, url?: string) => {
@@ -89,6 +106,63 @@ export function MapScreen() {
     // Collapse excess spaces
     text = text.replace(/\s{2,}/g, ' ');
     return text;
+  }, []);
+
+  // Build dynamic chips based on real data per type
+  const metaChips = React.useMemo(() => {
+    const chips: { icon: string; label: string }[] = [];
+    if (!selected) return chips;
+
+    // Helper: detect 24/7 from hours text
+    const isTwentyFourSeven = (hours?: string | null): boolean => {
+      if (!hours || typeof hours !== 'string') return false;
+      const h = hours.toLowerCase();
+      return (
+        /24\s*\/\s*7/.test(h) ||
+        /24h/.test(h) ||
+        /00:00\s*[-–]\s*24:00/.test(h) ||
+        /durchgehend/.test(h) ||
+        /ganztags/.test(h)
+      );
+    };
+
+    if (selected.type === 'toilet' && selected.toilet) {
+      if (isTwentyFourSeven(selected.toilet.hours)) {
+        chips.push({ icon: '⏱️', label: 'Always available' });
+      }
+      if (selected.toilet.barrierFree === true) {
+        chips.push({ icon: '♿', label: 'Accessible' });
+      } else if (selected.toilet.barrierReduced === true) {
+        chips.push({ icon: '♿', label: 'Accessible (reduced)' });
+      }
+      // No winter chip for toilets
+    }
+
+    if (selected.type === 'drinking' && selected.drinking) {
+      const infoClean = getSanitizedInfo(selected.drinking.info, selected.drinking.infoUrl || undefined);
+      const seasonMatch = infoClean.match(/^\s*Betriebszeit\s*:\s*(.+)$/i);
+      const seasonText = seasonMatch ? seasonMatch[1].trim() : '';
+      if (seasonText) {
+        const lower = seasonText.toLowerCase();
+        const yearRound = /ganzj[aä]hrig|year\s*round|全年/.test(lower);
+        if (!yearRound) {
+          chips.push({ icon: '❄️', label: 'Winter: Off' });
+        }
+      }
+    }
+
+    return chips;
+  }, [selected, getSanitizedInfo]);
+
+  const handleOpenUrl = React.useCallback(async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('[Map] Failed to open URL', e);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -231,9 +305,17 @@ export function MapScreen() {
             .filter(Boolean) as FeatureProps[];
         };
 
-        const drinkFeatures = mapCollection(drinkGeo, 'drinking');
-        const decorFeatures = DATASETS.fountainsDecorative ? mapCollection(decorGeo, 'decorative') : [];
-        const toiletFeatures = DATASETS.toiletsPublic ? mapCollection(toiletsGeo, 'toilet') : [];
+        const drinkFeatures = mapCollection(drinkGeo, 'drinking').map((f, idx) => ({
+          ...f,
+          // Prefix dataset to avoid collisions across datasets
+          id: `drink_${f.id}`,
+        }));
+        const decorFeatures = DATASETS.fountainsDecorative
+          ? mapCollection(decorGeo, 'decorative').map((f) => ({ ...f, id: `decor_${f.id}` }))
+          : [];
+        const toiletFeatures = DATASETS.toiletsPublic
+          ? mapCollection(toiletsGeo, 'toilet').map((f) => ({ ...f, id: `toilet_${f.id}` }))
+          : [];
         if (
           DATASETS.fountainsDecorative &&
           __DEV__ &&
@@ -263,10 +345,18 @@ export function MapScreen() {
           ...(DATASETS.toiletsPublic ? toiletFeatures : []),
         ];
 
+        // Ensure unique feature ids to prevent duplicate React keys in chooser lists, etc.
+        const uniqueById = Array.from(
+          mapped.reduce((acc, item) => {
+            if (!acc.has(item.id)) acc.set(item.id, item);
+            return acc;
+          }, new Map<string, FeatureProps>()).values()
+        );
+
         // Enable WMS fallback overlay if decorative WFS returns nothing
         setUseDecorWms(decorFeatures.length === 0);
 
-        if (isMounted) setFeatures(mapped);
+        if (isMounted) setFeatures(uniqueById);
       } catch (e) {
         // Keep features empty on failure for MVP
         if (__DEV__) {
@@ -664,29 +754,145 @@ export function MapScreen() {
                   {selected.description ? (
                     <Text style={styles.subtitle}>{selected.description}</Text>
                   ) : null}
-                  <View style={styles.distanceRow}>
-                    <Text style={styles.distanceText}>📍 340m · 4 min walk</Text>
-                  </View>
+                  {distanceLine ? (
+                    <View style={styles.distanceRow}>
+                      <Text style={styles.distanceText}>{distanceLine}</Text>
+                    </View>
+                  ) : null}
                 </View>
                 <Pressable style={styles.favButton} accessibilityRole="button">
                   <Text style={{ fontSize: 18 }}>⭐</Text>
                 </Pressable>
               </View>
 
-              {/* Image placeholder */}
-              <View style={styles.imageCard}>
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ fontSize: 28, opacity: 0.5 }}>📷</Text>
-                  <Text style={styles.imageText}>Add a photo</Text>
+              {/* Image placeholder (commented/disabled for now) */}
+              {SHOW_IMAGE_PLACEHOLDER ? (
+                <View style={styles.imageCard}>
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={{ fontSize: 28, opacity: 0.5 }}>📷</Text>
+                    <Text style={styles.imageText}>Add a photo</Text>
+                  </View>
                 </View>
-              </View>
+              ) : null}
 
-              {/* Metadata row (placeholders) */}
-              <View style={styles.metaRow}>
-                <View style={styles.metaItemRow}><Text>🕐</Text><Text style={styles.meta}>Always available</Text></View>
-                <View style={styles.metaItemRow}><Text>♿</Text><Text style={styles.meta}>Accessible</Text></View>
-                <View style={styles.metaItemRow}><Text>❄️</Text><Text style={styles.meta}>Winter: Off</Text></View>
-              </View>
+              {/* Metadata row (dynamic chips from real data) */}
+              {metaChips.length > 0 ? (
+                <View style={styles.metaRow}>
+                  {metaChips.map((c, idx) => (
+                    <View key={`${c.label}-${idx}`} style={styles.chip}>
+                      <Text style={styles.chipIcon}>{c.icon}</Text>
+                      <Text style={styles.chipText}>{c.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {/* Real details from API */}
+              {selected.type === 'drinking' && selected.drinking ? (
+                <View style={styles.detailsCard}>
+                  {selected.drinking.fountainType ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Type</Text>
+                      <Text style={styles.detailValue}>{selected.drinking.fountainType}</Text>
+                    </View>
+                  ) : null}
+                  {selected.drinking.yearBuilt != null ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Year built</Text>
+                      <Text style={styles.detailValue}>{selected.drinking.yearBuilt}</Text>
+                    </View>
+                  ) : null}
+                  {(() => {
+                    const infoClean = getSanitizedInfo(
+                      selected.drinking!.info,
+                      selected.drinking!.infoUrl || undefined
+                    );
+                    const seasonMatch = infoClean.match(/^\s*Betriebszeit\s*:\s*(.+)$/i);
+                    const seasonText = seasonMatch ? seasonMatch[1].trim() : '';
+                    if (seasonText) {
+                      return (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Operating season</Text>
+                          <Text style={styles.detailValue}>{seasonText}</Text>
+                        </View>
+                      );
+                    }
+                    if (infoClean) {
+                      return (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Info</Text>
+                          <Text style={styles.detailValue}>{infoClean}</Text>
+                        </View>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {selected.drinking.infoUrl ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Website</Text>
+                      <Text
+                        style={[styles.detailValue, styles.link]}
+                        accessibilityRole="link"
+                        onPress={() => handleOpenUrl(selected.drinking!.infoUrl!)}
+                      >
+                        {selected.drinking.infoUrl}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {selected.type === 'toilet' && selected.toilet ? (
+                <View style={styles.detailsCard}>
+                  {selected.toilet.hours ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Hours</Text>
+                      <Text style={styles.detailValue}>{selected.toilet.hours}</Text>
+                    </View>
+                  ) : null}
+                  {selected.toilet.fee != null ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Fee</Text>
+                      <Text style={styles.detailValue}>
+                        {selected.toilet.fee === 0 ? 'Free' : `${selected.toilet.fee} €`}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {selected.toilet.payment ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Payment</Text>
+                      <Text style={styles.detailValue}>{selected.toilet.payment}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Accessibility</Text>
+                    <Text style={styles.detailValue}>
+                      {selected.toilet.barrierFree === true
+                        ? 'Barrier-free'
+                        : selected.toilet.barrierFree === false
+                        ? 'Not barrier-free'
+                        : 'Unknown'}
+                      {selected.toilet.barrierReduced != null
+                        ? selected.toilet.barrierReduced
+                          ? ' · Accessible (reduced)'
+                          : ' · Not barrier-reduced'
+                        : ''}
+                    </Text>
+                  </View>
+                  {selected.toilet.hasChangingTable != null ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Baby-changing table</Text>
+                      <Text style={styles.detailValue}>{selected.toilet.hasChangingTable ? 'Yes' : 'No'}</Text>
+                    </View>
+                  ) : null}
+                  {selected.toilet.operator ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Operator</Text>
+                      <Text style={styles.detailValue}>{selected.toilet.operator}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
 
               {/* Community status */}
               <View style={styles.statusCard}>
@@ -835,16 +1041,50 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
-  metaItemRow: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#f2f6ff',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  chipIcon: {
+    fontSize: 12,
+  },
+  chipText: {
+    color: '#334155',
+    fontWeight: '500',
   },
   statusCard: {
     backgroundColor: '#F8F9FA',
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+  },
+  detailsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e5e7eb',
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 6,
+  },
+  detailLabel: {
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  detailValue: {
+    color: '#111827',
+    flexShrink: 1,
+    textAlign: 'right',
   },
   statusHeader: {
     flexDirection: 'row',
