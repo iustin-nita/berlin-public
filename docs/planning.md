@@ -120,8 +120,8 @@ Before design, secure accurate fountain location data:
 
 ## **6. Launch MVP Plan**
 
-* Phase 1: Map with fountains + detail cards + “Near me” list.
-* Phase 2: Filters + Favorites.
+* Phase 1: Map with fountains + detail card (native only, no "Near me" yet).
+* Phase 2: Filters + Favorites + “Near me” quick list.
 * Phase 3: Offline mode + AR + achievements.
 
 ---
@@ -132,4 +132,51 @@ Before design, secure accurate fountain location data:
 * Low cognitive load: filters & lists are secondary, not overwhelming.
 * Emotional appeal: photos, history, and playful badges make it memorable.
 * Scalability: can expand to other cities or water-related features.
+
+
+---
+
+## **8. Current Status (MVP Phase 1)**
+
+### What’s done
+
+* Map screen replaces Home tab; native-first focus (Android/iOS).
+* Map provider: Mapbox (`@rnmapbox/maps`) with public runtime token.
+* Data sources (WFS, GeoJSON, EPSG:4326):
+  * Drinking fountains:
+    * `https://gdi.berlin.de/services/wfs/trinkwasserbrunnen?service=WFS&version=2.0.0&request=GetFeature&typeNames=trinkwasserbrunnen:trinkwasserbrunnen&outputFormat=application/json&srsName=EPSG:4326`
+  * Ornamental fountains (Zierbrunnen) — FeatureType confirmed via GetCapabilities:
+    * `https://gdi.berlin.de/services/wfs/zierbrunnen?service=WFS&version=2.0.0&request=GetFeature&typeNames=zierbrunnen:bez_zierbrunnen&outputFormat=application/json&srsName=EPSG:4326`
+    * WMS fallback overlay used if WFS yields 0 features:
+      * `https://gdi.berlin.de/services/wms/zierbrunnen`
+  * Public toilets (configurable):
+    * `https://gdi.berlin.de/services/wfs/toiletten?service=WFS&version=2.0.0&request=GetFeature&typeNames=toiletten:toiletten&outputFormat=application/json&srsName=EPSG:4326`
+* Rendering: `ShapeSource` + `SymbolLayer` with custom icons per dataset.
+  * Drinking: `assets/water-drop.png`
+  * Ornamental: `assets/decor.png`
+  * Toilets: `assets/toilet.png`
+* Interaction: tap marker opens a bottom sheet with title and short meta.
+* Location: asks once on first launch; recenter FAB uses camera `flyTo`.
+* Dataset toggles: top-level `DATASETS` flags to enable/disable sources (drinking, decorative, toilets) without code changes to the render tree.
+* Config: migrated to `app.config.ts`; Mapbox downloads token set via plugin; linking scheme `berlinfountains://`.
+
+### In progress / next polish
+
+* Style bottom sheet to match mock (typography, spacing, optional image).
+* Better permission UX: disabled state + prompt to enable in settings when denied.
+* Light clustering for performance when zoomed out (if needed).
+* Expose dataset toggles in UI (dev settings) instead of hardcoded flags.
+
+### Deferred (after Phase 1)
+
+* “Near me” quick list.
+* Filters and Favorites.
+* Navigation to Apple/Google Maps.
+* Web support.
+* Persist dataset toggle choices.
+
+### Notes
+
+* Requires dev build (not Expo Go) due to Mapbox native module.
+* iOS permission string added; Android permissions provided via Expo/Mapbox config.
 

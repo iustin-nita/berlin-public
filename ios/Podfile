@@ -13,8 +13,8 @@ install! 'cocoapods',
 
 prepare_react_native_project!
 
-# @generated begin @rnmapbox/maps-rnmapboxmapsimpl - expo prebuild (DO NOT MODIFY) sync-fa4faa03595ac4ba4ff8312b41955f67d0ea6fcb
-$RNMapboxMapsDownloadToken = 'pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw'
+# @generated begin @rnmapbox/maps-rnmapboxmapsimpl - expo prebuild (DO NOT MODIFY) sync-5268b00bec0f14311ee9cdc1eb806a2d18702d60
+$RNMapboxMapsDownloadToken = 'sk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbWUzeWxrbnkwYmphMmpzOTh1Z2p0dTAxIn0.itJMp15YV5sX8ZzcW2HRxg'
 $RNMapboxMapsImpl = 'mapbox'
 # @generated end @rnmapbox/maps-rnmapboxmapsimpl
 target 'berlinfountains' do

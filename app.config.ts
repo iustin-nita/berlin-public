@@ -7,9 +7,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 const MAPBOX_PUBLIC_TOKEN =
   'pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw';
 // Secret downloads token (sk.*) required by native SDK downloads during prebuild
-const MAPBOX_DOWNLOADS_TOKEN =
-  process.env.MAPBOX_DOWNLOADS_TOKEN ||
-  'sk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbWUzeWxrbnkwYmphMmpzOTh1Z2p0dTAxIn0.itJMp15YV5sX8ZzcW2HRxg';
+const MAPBOX_DOWNLOADS_TOKEN = process.env.MAPBOX_DOWNLOADS_TOKEN;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
