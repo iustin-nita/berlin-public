@@ -155,7 +155,15 @@ Before design, secure accurate fountain location data:
   * Drinking: `assets/water-drop.png`
   * Ornamental: `assets/decor.png`
   * Toilets: `assets/toilet.png`
-* Interaction: tap marker opens a bottom sheet with title and short meta.
+* Interaction: tap marker opens a redesigned bottom sheet (header + details):
+  * Type pill (Drinking/Decorative/Toilet), title, district, real distance + walking ETA
+  * Dynamic chips using real data (not hardcoded):
+    * Toilets → “Always available” only when hours look 24/7; “Accessible” or “Accessible (reduced)” based on flags
+    * Drinking → “Winter: Off” when info indicates seasonal operation (parses “Betriebszeit: …”)
+  * Details section populated from WFS:
+    * Drinking → Type, Year built, Operating season/Info, and clickable Website (URL sanitized and extracted)
+    * Toilets → Hours, Fee, Payment, Accessibility, Baby‑changing table, Operator
+  * Photo placeholder hidden for now
 * Selection affordance: enlarged icon (1.2x) and subtle halo ring.
 * Dense areas: clustering enabled (circle + count), tap-to-zoom into clusters.
 * Overlap disambiguation: small chooser appears when multiple features are under the tap.
@@ -163,13 +171,22 @@ Before design, secure accurate fountain location data:
 * Location: asks once on first launch; recenter FAB uses camera `flyTo`.
 * Dataset toggles: top-level `DATASETS` flags to enable/disable sources (drinking, decorative, toilets) without code changes to the render tree.
 * Config: migrated to `app.config.ts`; Mapbox downloads token set via plugin; linking scheme `berlinfountains://`.
+* Stability: gate Mapbox layers until style has loaded (`onDidFinishLoadingStyle`) to avoid Android dev-reload "ViewTagResolver" crashes; silence noisy NativeEventEmitter warning in dev.
+* Data correctness: prefix feature ids per dataset (`drink_`, `decor_`, `toilet_`) and de‑duplicate combined collections to avoid React key collisions.
+* Distance/ETA: haversine distance from user location with ~4.5 km/h walking estimate.
+* Navigate action: opens directions via Citymapper (if installed) → Google Maps (URL scheme) → Apple Maps (iOS) → Google Maps web as final fallback. Walking mode by default; uses feature title as label.
+* Refactor groundwork: introduced `src/navigation/screens/map/` module set (utils, data hook, layers, small UI components). Full swap-in pending.
 
 ### In progress / next polish
 
-* Style bottom sheet to match mock (typography, spacing, optional image).
+* Replace placeholder community status (Working / Not Working) with real counters; wire vote actions.
+* Share action (system share sheet with deep link to destination) — pending.
+* Optional: bring back photo placeholder with upload flow later.
 * Better permission UX: disabled state + prompt to enable in settings when denied.
 * Polish cluster visuals and toggle styles.
 * Optional: tap on empty map to clear selection; track last-used dataset.
+* Truncate long links with ellipsis; show external-link icon.
+* Continue Map screen refactor: move remaining logic/UI from `src/navigation/screens/Map.tsx` into `map/` components (`MapLayers`, `ToggleBar`, `ChoiceBar`, `RecenterButton`, `DetailsSheet`) and `useFountainsData` hook.
 
 ### Deferred (after Phase 1)
 

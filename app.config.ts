@@ -9,6 +9,10 @@ const MAPBOX_PUBLIC_TOKEN =
 // Secret downloads token (sk.*) required by native SDK downloads during prebuild
 const MAPBOX_DOWNLOADS_TOKEN = process.env.MAPBOX_DOWNLOADS_TOKEN;
 
+// Supabase configuration (provided via env in dev/build)
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'berlin-fountains',
@@ -63,6 +67,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   extra: {
     mapboxPublicToken: MAPBOX_PUBLIC_TOKEN,
+    // Make Supabase runtime config available to the app
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY,
+    eas: {
+      slug: 'berlin-fountains',
+      projectId: '217c7d26-d257-41ef-b6cf-19e97076d160',
+    },
   },
 });
 

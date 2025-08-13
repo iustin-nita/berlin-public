@@ -11,7 +11,7 @@ import newspaper from '../assets/newspaper.png';
 import { MapScreen } from './screens/Map';
 import { Profile } from './screens/Profile';
 import { Settings } from './screens/Settings';
-import { Updates } from './screens/Updates';
+import { Favorites } from './screens/Favorites';
 import { NotFound } from './screens/NotFound';
 
 const HomeTabs = createBottomTabNavigator({
@@ -32,9 +32,10 @@ const HomeTabs = createBottomTabNavigator({
         ),
       },
     },
-    Updates: {
-      screen: Updates,
+    Favorites: {
+      screen: Favorites,
       options: {
+        title: 'Favorites',
         tabBarIcon: ({ color, size }) => (
           <Image
             source={bell}

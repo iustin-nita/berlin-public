@@ -2,39 +2,15 @@ import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-
-type FeatureProps = {
-  id: string;
-  title: string;
-  description?: string;
-  coordinates: [number, number];
-  type?: 'drinking' | 'decorative' | 'toilet';
-  imageUrl?: string;
-  // Optional structured metadata for toilets (rendered in details sheet)
-  toilet?: {
-    operator?: string;
-    district?: string;
-    hours?: string;
-    fee?: number | null;
-    payment?: string;
-    hasChangingTable?: boolean | null;
-    barrierFree?: boolean | null;
-    barrierReduced?: boolean | null;
-  };
-  // Optional metadata for drinking fountains
-  drinking?: {
-    district?: string;
-    yearBuilt?: number | null;
-    fountainType?: string;
-    restrictions?: string;
-    info?: string;
-    infoUrl?: string | null;
-    number?: number | null;
-    postalCode?: number | null;
-  };
-};
+import { ActivityIndicator, View, Linking } from 'react-native';
+import BottomSheet from '@gorhom/bottom-sheet';
+import { FeatureProps } from '../../types/api';
+import { openDirections } from './map/navigationIntents';
+import { ToggleBar } from './map/ToggleBar';
+import { ChoiceBar } from './map/ChoiceBar';
+import { RecenterButton } from './map/RecenterButton';
+import { DetailsSheet } from './map/DetailsSheet';
+import { styles } from './Map.styles';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 // Simple dataset flags so we can toggle sources independently.
@@ -422,6 +398,56 @@ export function MapScreen() {
     [selectedId]
   );
 
+  const handleNavigate = React.useCallback(async () => {
+    if (!selected) return;
+    const [lng, lat] = selected.coordinates;
+    try {
+      await openDirections({ latitude: lat, longitude: lng, name: selected.title });
+    } catch (e) {
+      if (__DEV__) console.warn('[Map] Failed to open navigation', e);
+    }
+  }, [selected]);
+
+  // Recenter the camera to the user's current location.
+  // - Ensures permission is granted
+  // - Fetches a fresh location if we don't have one yet
+  // - Uses setCamera when available (more reliable on Android), with flyTo as a fallback
+  const handleRecenter = React.useCallback(async () => {
+    try {
+      // Wait until map style is loaded to avoid native view tag errors
+      if (!styleLoaded) return;
+
+      // Request permission if we don't have it yet
+      if (!hasLocationPermission) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        setHasLocationPermission(true);
+      }
+
+      let target: [number, number] | null = userLocation;
+      if (!target) {
+        const loc = await Location.getCurrentPositionAsync({});
+        target = [loc.coords.longitude, loc.coords.latitude];
+        setUserLocation(target);
+      }
+      if (!target) return;
+
+      const camera: any = cameraRef.current as any;
+      if (camera?.setCamera) {
+        camera.setCamera({
+          centerCoordinate: target,
+          zoomLevel: Math.max(cameraZoom, 14),
+          animationMode: 'flyTo',
+          animationDuration: 600,
+        });
+      } else if (camera?.flyTo) {
+        camera.flyTo(target, 600);
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('[Map] Failed to recenter', e);
+    }
+  }, [styleLoaded, hasLocationPermission, userLocation, cameraZoom]);
+
   // Extract a safe [lng, lat] tuple from a pressed feature
   const getFeatureCoordinate = React.useCallback((f: any): [number, number] | null => {
     let coords: any = f?.geometry?.coordinates;
@@ -637,60 +663,12 @@ export function MapScreen() {
         </View>
       )}
 
-      {/* Dataset toggle: only one dataset visible at a time */}
-      <View style={styles.toggleBar} pointerEvents="box-none">
-        <View style={styles.togglePill}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Show fountains"
-            onPress={() => setActiveDataset('fountains')}
-            style={[
-              styles.toggleItem,
-              activeDataset === 'fountains' ? styles.toggleItemActive : null,
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                activeDataset === 'fountains' ? styles.toggleTextActive : null,
-              ]}
-            >
-              Fountains
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Show toilets"
-            onPress={() => setActiveDataset('toilets')}
-            style={[
-              styles.toggleItem,
-              activeDataset === 'toilets' ? styles.toggleItemActive : null,
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleText,
-                activeDataset === 'toilets' ? styles.toggleTextActive : null,
-              ]}
-            >
-              Toilets
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-      {/* Small chooser when multiple features overlap under the tap */}
-      {candidates.length > 1 && (
-        <View style={styles.choiceBar}>
-          <Text style={styles.choiceTitle}>Select a place:</Text>
-          <View style={styles.choiceList}>
-            {candidates.map((c) => (
-              <Pressable
-                key={c.id}
-                style={styles.choiceItem}
-                onPress={() => {
+      <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
+      <ChoiceBar
+        candidates={candidates}
+        onPick={(c) => {
                   setSelected(c);
                   setCandidates([]);
-                  // Slight zoom-in to improve separation
                   (cameraRef.current as any)?.setCamera?.({
                     centerCoordinate: c.coordinates,
                     zoomLevel: 15,
@@ -698,532 +676,21 @@ export function MapScreen() {
                     animationDuration: 400,
                   });
                 }}
-              >
-                <Text numberOfLines={1} style={styles.choiceText}>{c.title}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
+      />
 
-      {/* Recenter button */}
-      <Pressable
-        accessibilityLabel="Recenter map to my location"
-        onPress={() => {
-          if (userLocation) {
-            // Use Mapbox camera flyTo helper for reliability
-            (cameraRef.current as any)?.flyTo(userLocation, 600);
-          }
-        }}
-        style={styles.recenterButton}
-      >
-        <Text style={styles.recenterGlyph}>➤</Text>
-      </Pressable>
+      <RecenterButton onPress={handleRecenter} />
 
-      {/* Bottom sheet for details */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        snapPoints={['38%', '68%']}
-        index={-1}
-        enablePanDownToClose
-        handleIndicatorStyle={styles.sheetHandle}
+      <DetailsSheet
+        refInstance={bottomSheetRef}
+        selected={selected}
         onClose={() => setSelected(null)}
-      >
-          <BottomSheetView style={styles.sheetContent}>
-          {selected ? (
-            <View>
-              {/* Header with type pill, title, subtitle, distance and favorite */}
-              <View style={styles.headerSection}>
-                <View style={{ flex: 1 }}>
-                  <View
-                    style={[
-                      styles.typePill,
-                      selected.type === 'decorative' ? styles.typePillDecor :
-                      selected.type === 'toilet' ? styles.typePillToilet : styles.typePillDrink,
-                    ]}
-                  >
-                    <Text style={styles.typePillText}>
-                      {selected.type === 'toilet'
-                        ? 'Public Toilet'
-                        : selected.type === 'decorative'
-                        ? 'Decorative Fountain'
-                        : 'Drinking Water'}
-                    </Text>
-                  </View>
-                  <Text style={styles.title}>{selected.title || 'Water Source'}</Text>
-                  {selected.description ? (
-                    <Text style={styles.subtitle}>{selected.description}</Text>
-                  ) : null}
-                  {distanceLine ? (
-                    <View style={styles.distanceRow}>
-                      <Text style={styles.distanceText}>{distanceLine}</Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Pressable style={styles.favButton} accessibilityRole="button">
-                  <Text style={{ fontSize: 18 }}>⭐</Text>
-                </Pressable>
-              </View>
-
-              {/* Image placeholder (commented/disabled for now) */}
-              {SHOW_IMAGE_PLACEHOLDER ? (
-                <View style={styles.imageCard}>
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={{ fontSize: 28, opacity: 0.5 }}>📷</Text>
-                    <Text style={styles.imageText}>Add a photo</Text>
-                  </View>
-                </View>
-              ) : null}
-
-              {/* Metadata row (dynamic chips from real data) */}
-              {metaChips.length > 0 ? (
-                <View style={styles.metaRow}>
-                  {metaChips.map((c, idx) => (
-                    <View key={`${c.label}-${idx}`} style={styles.chip}>
-                      <Text style={styles.chipIcon}>{c.icon}</Text>
-                      <Text style={styles.chipText}>{c.label}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {/* Real details from API */}
-              {selected.type === 'drinking' && selected.drinking ? (
-                <View style={styles.detailsCard}>
-                  {selected.drinking.fountainType ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Type</Text>
-                      <Text style={styles.detailValue}>{selected.drinking.fountainType}</Text>
-                    </View>
-                  ) : null}
-                  {selected.drinking.yearBuilt != null ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Year built</Text>
-                      <Text style={styles.detailValue}>{selected.drinking.yearBuilt}</Text>
-                    </View>
-                  ) : null}
-                  {(() => {
-                    const infoClean = getSanitizedInfo(
-                      selected.drinking!.info,
-                      selected.drinking!.infoUrl || undefined
-                    );
-                    const seasonMatch = infoClean.match(/^\s*Betriebszeit\s*:\s*(.+)$/i);
-                    const seasonText = seasonMatch ? seasonMatch[1].trim() : '';
-                    if (seasonText) {
-                      return (
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Operating season</Text>
-                          <Text style={styles.detailValue}>{seasonText}</Text>
-                        </View>
-                      );
-                    }
-                    if (infoClean) {
-                      return (
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Info</Text>
-                          <Text style={styles.detailValue}>{infoClean}</Text>
-                        </View>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {selected.drinking.infoUrl ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Website</Text>
-                      <Text
-                        style={[styles.detailValue, styles.link]}
-                        accessibilityRole="link"
-                        onPress={() => handleOpenUrl(selected.drinking!.infoUrl!)}
-                      >
-                        {selected.drinking.infoUrl}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-
-              {selected.type === 'toilet' && selected.toilet ? (
-                <View style={styles.detailsCard}>
-                  {selected.toilet.hours ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Hours</Text>
-                      <Text style={styles.detailValue}>{selected.toilet.hours}</Text>
-                    </View>
-                  ) : null}
-                  {selected.toilet.fee != null ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Fee</Text>
-                      <Text style={styles.detailValue}>
-                        {selected.toilet.fee === 0 ? 'Free' : `${selected.toilet.fee} €`}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {selected.toilet.payment ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Payment</Text>
-                      <Text style={styles.detailValue}>{selected.toilet.payment}</Text>
-                    </View>
-                  ) : null}
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Accessibility</Text>
-                    <Text style={styles.detailValue}>
-                      {selected.toilet.barrierFree === true
-                        ? 'Barrier-free'
-                        : selected.toilet.barrierFree === false
-                        ? 'Not barrier-free'
-                        : 'Unknown'}
-                      {selected.toilet.barrierReduced != null
-                        ? selected.toilet.barrierReduced
-                          ? ' · Accessible (reduced)'
-                          : ' · Not barrier-reduced'
-                        : ''}
-                    </Text>
-                  </View>
-                  {selected.toilet.hasChangingTable != null ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Baby-changing table</Text>
-                      <Text style={styles.detailValue}>{selected.toilet.hasChangingTable ? 'Yes' : 'No'}</Text>
-                    </View>
-                  ) : null}
-                  {selected.toilet.operator ? (
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Operator</Text>
-                      <Text style={styles.detailValue}>{selected.toilet.operator}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-
-              {/* Community status */}
-              <View style={styles.statusCard}>
-                <View style={styles.statusHeader}>
-                  <Text style={styles.statusLabel}>Community Status</Text>
-                  <View style={styles.statusBadge}><Text style={styles.statusBadgeText}>✓ Working · 2 days ago</Text></View>
-                </View>
-                <View style={styles.voteRow}>
-                  <Pressable style={[styles.voteButton, styles.voteYes]} accessibilityRole="button">
-                    <Text style={styles.voteText}>👍 Working</Text>
-                    <Text style={styles.voteCount}>(127)</Text>
-                  </Pressable>
-                  <Pressable style={[styles.voteButton, styles.voteNo]} accessibilityRole="button">
-                    <Text style={styles.voteText}>👎 Not Working</Text>
-                    <Text style={styles.voteCount}>(3)</Text>
-                  </Pressable>
-                </View>
-              </View>
-
-              {/* Actions */}
-              <View style={styles.actionsRow}>
-                <Pressable style={[styles.actionButton, styles.primaryAction]} accessibilityRole="button">
-                  <Text style={styles.actionText}>🧭 Navigate</Text>
-                </Pressable>
-                <Pressable style={[styles.actionButton, styles.secondaryAction]} accessibilityRole="button">
-                  <Text style={[styles.actionText, styles.secondaryActionText]}>📤 Share</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <View />
-          )}
-        </BottomSheetView>
-      </BottomSheet>
+        distanceLine={distanceLine}
+        onNavigate={handleNavigate}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  map: { flex: 1 },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetContent: {
-    padding: 16,
-  },
-  sheetHandle: {
-    backgroundColor: '#E0E0E0',
-  },
-  headerSection: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 12,
-  },
-  typePill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  typePillDrink: {
-    backgroundColor: '#E3F2FD',
-  },
-  typePillDecor: {
-    backgroundColor: '#FFF3E0',
-  },
-  typePillToilet: {
-    backgroundColor: '#E0F2F1',
-  },
-  typePillText: {
-    color: '#1f2937',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  recenterButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-    height: 48,
-    width: 48,
-    backgroundColor: 'white',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  recenterGlyph: { fontSize: 20 },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  distanceRow: {
-    marginTop: 6,
-  },
-  distanceText: {
-    color: '#475569',
-    fontWeight: '500',
-  },
-  favButton: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subtitle: {
-    color: '#707070',
-    marginTop: 2,
-  },
-  meta: {
-    color: '#4a4a4a',
-  },
-  link: {
-    color: '#1d4ed8',
-    textDecorationLine: 'underline',
-  },
-  imageCard: {
-    height: 140,
-    borderRadius: 12,
-    backgroundColor: '#E8F2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  imageText: {
-    color: '#1d4ed8',
-    fontWeight: '500',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 12,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f2f6ff',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  chipIcon: {
-    fontSize: 12,
-  },
-  chipText: {
-    color: '#334155',
-    fontWeight: '500',
-  },
-  statusCard: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-  },
-  detailsCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e5e7eb',
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 6,
-  },
-  detailLabel: {
-    color: '#6b7280',
-    fontWeight: '600',
-  },
-  detailValue: {
-    color: '#111827',
-    flexShrink: 1,
-    textAlign: 'right',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  statusLabel: {
-    color: '#6b7280',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  statusBadge: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  statusBadgeText: {
-    color: '#2E7D32',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  voteRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  voteButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  voteYes: {
-    backgroundColor: '#E8F5E9',
-  },
-  voteNo: {
-    backgroundColor: '#FFEBEE',
-  },
-  voteText: {
-    fontWeight: '700',
-    color: '#334155',
-  },
-  voteCount: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryAction: {
-    backgroundColor: '#1976D2',
-  },
-  secondaryAction: {
-    backgroundColor: '#E8F5E9',
-  },
-  actionText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  secondaryActionText: {
-    color: '#2E7D32',
-  },
-  choiceBar: {
-    position: 'absolute',
-    left: 12,
-    right: 12,
-    bottom: 88,
-    backgroundColor: 'rgba(255,255,255,0.98)',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  choiceTitle: {
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  choiceList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  choiceItem: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#f1f4f8',
-    borderRadius: 8,
-    maxWidth: '48%',
-  },
-  choiceText: {
-    color: '#102a43',
-  },
-  toggleBar: {
-    position: 'absolute',
-    top: 12,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  togglePill: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderRadius: 999,
-    padding: 4,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  toggleItem: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-  },
-  toggleItemActive: {
-    backgroundColor: '#e6f0ff',
-  },
-  toggleText: {
-    color: '#334155',
-    fontWeight: '500',
-  },
-  toggleTextActive: {
-    color: '#1d4ed8',
-    fontWeight: '700',
-  },
-});
+// styles moved to ./map/styles
 
 
