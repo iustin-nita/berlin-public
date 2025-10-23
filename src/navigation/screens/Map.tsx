@@ -12,8 +12,11 @@ import { ChoiceBar } from './map/ChoiceBar';
 import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
 import { MapHint } from './map/MapHint';
+import { OfflineBanner } from './map/OfflineBanner';
 import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
+import { useCachedFountainsData } from './map/useCachedFountainsData';
+import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 // Simple dataset flags so we can toggle sources independently.
@@ -29,11 +32,9 @@ Mapbox.setAccessToken((Constants.expoConfig?.extra as any)?.mapboxPublicToken);
 export function MapScreen() {
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
-  const [features, setFeatures] = React.useState<FeatureProps[]>([]);
   const [selected, setSelected] = React.useState<FeatureProps | null>(null);
   const [candidates, setCandidates] = React.useState<FeatureProps[]>([]);
   const [activeDataset, setActiveDataset] = React.useState<'fountains' | 'toilets'>('fountains');
-  const [loading, setLoading] = React.useState(true);
   const [useDecorWms, setUseDecorWms] = React.useState(false);
   // Render map layers only after the style is fully loaded to avoid Android dev-reload native view tag errors
   const [styleLoaded, setStyleLoaded] = React.useState(false);
@@ -46,6 +47,10 @@ export function MapScreen() {
 
   const { pendingFeature, clearPendingFeature } = useMapNavigation();
   const [showMapHint, setShowMapHint] = React.useState(false);
+
+  // Use caching hook for data management
+  const { features, loading, cacheAge, isStale, refresh } = useCachedFountainsData();
+  const isOnline = useNetworkStatus();
   // Temporary visual-only flag: hide the photo placeholder section
   const SHOW_IMAGE_PLACEHOLDER = false;
 
@@ -208,191 +213,6 @@ export function MapScreen() {
       }
     }
   }, [userLocation, styleLoaded]);
-
-  React.useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        // Fetch WFS GeoJSON sources in parallel: drinking water fountains, decorative (ornamental) fountains, and public toilets (configurable)
-        // WFS endpoints (vector features):
-        // - Drinking: gdi.berlin.de/services/wfs/trinkwasserbrunnen
-        // - Decorative (Zierbrunnen): gdi.berlin.de/services/wfs/zierbrunnen
-        // - Public toilets: gdi.berlin.de/services/wfs/toiletten
-
-        const DRINKING_URL =
-          'https://gdi.berlin.de/services/wfs/trinkwasserbrunnen?service=WFS&version=2.0.0&request=GetFeature&typeNames=trinkwasserbrunnen:trinkwasserbrunnen&outputFormat=application/json&srsName=EPSG:4326';
-        // FeatureType from GetCapabilities: zierbrunnen:bez_zierbrunnen
-        const DECORATIVE_URL =
-          'https://gdi.berlin.de/services/wfs/zierbrunnen?service=WFS&version=2.0.0&request=GetFeature&typeNames=zierbrunnen:bez_zierbrunnen&outputFormat=application/json&srsName=EPSG:4326';
-        const TOILETS_URL =
-          'https://gdi.berlin.de/services/wfs/toiletten?service=WFS&version=2.0.0&request=GetFeature&typeNames=toiletten:toiletten&outputFormat=application/json&srsName=EPSG:4326';
-
-        const [drinkRes, decorRes, toiletsRes] = await Promise.all([
-          fetch(DRINKING_URL),
-          DATASETS.fountainsDecorative
-            ? fetch(DECORATIVE_URL).catch((e) => {
-                if (__DEV__) console.warn('[Map] Decorative fountains fetch failed', e);
-                return null as any;
-              })
-            : Promise.resolve(null as any),
-          DATASETS.toiletsPublic
-            ? fetch(TOILETS_URL).catch((e) => {
-                if (__DEV__) console.warn('[Map] Toilets fetch failed', e);
-                return null as any;
-              })
-            : Promise.resolve(null as any),
-        ]);
-
-        const [drinkGeo, decorGeo, toiletsGeo] = await Promise.all([
-          drinkRes.json(),
-          decorRes ? decorRes.json().catch(() => null) : Promise.resolve(null),
-          toiletsRes ? toiletsRes.json().catch(() => null) : Promise.resolve(null),
-        ]);
-
-
-        const mapCollection = (
-          geo: any,
-          type: NonNullable<FeatureProps['type']>
-        ): FeatureProps[] => {
-          if (!geo || !geo.features) return [];
-          return geo.features
-            .map((f: any, idx: number) => {
-              let coords: any = f?.geometry?.coordinates;
-              // Some datasets may be MultiPoint; take first pair if so
-              if (Array.isArray(coords) && Array.isArray(coords[0])) {
-                coords = coords[0];
-              }
-              if (!coords || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') {
-                return null;
-              }
-              const props: any = f?.properties ?? {};
-              const name: string =
-                props?.standort ||
-                props?.name ||
-                props?.bezeichnung ||
-                props?.anlage ||
-                props?.titel ||
-                props?.objekt ||
-                'Fountain';
-              const common: FeatureProps = {
-                id: String(f.id ?? idx),
-                title: name,
-                description: props?.bezirk || props?.ortsteil || undefined,
-                coordinates: coords,
-                type,
-              };
-              if (type === 'drinking') {
-                const parseUrl = (text: any): string | null => {
-                  if (typeof text !== 'string') return null;
-                  const m = text.match(/https?:\/\/\S+/);
-                  return m ? m[0].trim() : null;
-                };
-                const toNum = (v: any): number | null => {
-                  if (typeof v === 'number') return v;
-                  const n = Number(v);
-                  return Number.isFinite(n) ? n : null;
-                };
-                (common as any).drinking = {
-                  district: props?.bezirk || undefined,
-                  yearBuilt: toNum(props?.baujahr),
-                  fountainType: props?.trinkbrunnenart || undefined,
-                  restrictions: props?.einschraenkungen || undefined,
-                  info: props?.informationen || undefined,
-                  infoUrl: parseUrl(props?.informationen),
-                  number: toNum(props?.nummer),
-                  postalCode: toNum(props?.postleitzahl),
-                } as FeatureProps['drinking'];
-              }
-              if (type === 'toilet') {
-                const toBool = (v: any): boolean | null => {
-                  const s = typeof v === 'string' ? v.toLowerCase() : v;
-                  if (s === 'ja' || s === true) return true;
-                  if (s === 'nein' || s === false) return false;
-                  return null;
-                };
-                const feeRaw = props?.nutzungsentgelt;
-                const feeNum = typeof feeRaw === 'number' ? feeRaw : feeRaw != null ? Number(feeRaw) : null;
-                (common as any).toilet = {
-                  operator: props?.betreiber || undefined,
-                  district: props?.bezirk || undefined,
-                  hours: props?.oeffnungszeiten || undefined,
-                  fee: Number.isFinite(feeNum) ? feeNum : null,
-                  payment: props?.zahlungsart || undefined,
-                  hasChangingTable: toBool(props?.wickeltisch),
-                  barrierFree: toBool(props?.barrierefrei),
-                  barrierReduced: toBool(props?.barrierearm),
-                } as FeatureProps['toilet'];
-              }
-              return common as FeatureProps;
-            })
-            .filter(Boolean) as FeatureProps[];
-        };
-
-        const drinkFeatures = mapCollection(drinkGeo, 'drinking').map((f, idx) => ({
-          ...f,
-          // Prefix dataset to avoid collisions across datasets
-          id: `drink_${f.id}`,
-        }));
-        const decorFeatures = DATASETS.fountainsDecorative
-          ? mapCollection(decorGeo, 'decorative').map((f) => ({ ...f, id: `decor_${f.id}` }))
-          : [];
-        const toiletFeatures = DATASETS.toiletsPublic
-          ? mapCollection(toiletsGeo, 'toilet').map((f) => ({ ...f, id: `toilet_${f.id}` }))
-          : [];
-        if (
-          DATASETS.fountainsDecorative &&
-          __DEV__ &&
-          (!decorGeo || !Array.isArray(decorGeo?.features) || decorFeatures.length === 0)
-        ) {
-          try {
-            const capsRes = await fetch(
-              'https://gdi.berlin.de/services/wfs/zierbrunnen?service=WFS&version=2.0.0&request=GetCapabilities'
-            );
-            const capsText = await capsRes.text();
-            const names = Array.from(capsText.matchAll(/<Name>(.*?)<\/Name>/g)).map((m) => m[1]);
-            console.warn('[Map] Zierbrunnen WFS returned 0 features. Available FeatureType names from GetCapabilities:', names);
-          } catch (capErr) {
-            console.warn('[Map] Failed to read Zierbrunnen GetCapabilities', capErr);
-          }
-        }
-        if (__DEV__) {
-          console.log('[Map] Loaded counts', {
-            drink: drinkFeatures.length,
-            decor: decorFeatures.length,
-            toilets: toiletFeatures.length,
-          });
-        }
-        const mapped: FeatureProps[] = [
-          ...drinkFeatures,
-          ...(DATASETS.fountainsDecorative ? decorFeatures : []),
-          ...(DATASETS.toiletsPublic ? toiletFeatures : []),
-        ];
-
-        // Ensure unique feature ids to prevent duplicate React keys in chooser lists, etc.
-        const uniqueById = Array.from(
-          mapped.reduce((acc, item) => {
-            if (!acc.has(item.id)) acc.set(item.id, item);
-            return acc;
-          }, new Map<string, FeatureProps>()).values()
-        );
-
-        // Enable WMS fallback overlay if decorative WFS returns nothing
-        setUseDecorWms(decorFeatures.length === 0);
-
-        if (isMounted) setFeatures(uniqueById);
-      } catch (e) {
-        // Keep features empty on failure for MVP
-        if (__DEV__) {
-          console.warn('[Map] Failed to load fountains', e);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   React.useEffect(() => {
     if (selected) {
@@ -778,6 +598,13 @@ export function MapScreen() {
       )}
 
       {showMapHint && <MapHint onDismiss={handleDismissHint} />}
+
+      <OfflineBanner
+        isOnline={isOnline}
+        cacheAge={cacheAge}
+        isStale={isStale}
+        onRefresh={refresh}
+      />
 
       <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
       <ChoiceBar
