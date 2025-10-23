@@ -5,9 +5,7 @@ import {
   StaticParamList,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Image } from 'react-native';
-import bell from '../assets/bell.png';
-import newspaper from '../assets/newspaper.png';
+import { Text as RNText } from 'react-native';
 import { MapScreen } from './screens/Map';
 import { Profile } from './screens/Profile';
 import { Settings } from './screens/Settings';
@@ -21,14 +19,7 @@ const HomeTabs = createBottomTabNavigator({
       options: {
         title: 'Map',
         tabBarIcon: ({ color, size }) => (
-          <Image
-            source={newspaper}
-            tintColor={color}
-            style={{
-              width: size,
-              height: size,
-            }}
-          />
+          <RNText style={{ color, fontSize: size }}>📍</RNText>
         ),
       },
     },
@@ -37,14 +28,7 @@ const HomeTabs = createBottomTabNavigator({
       options: {
         title: 'Favorites',
         tabBarIcon: ({ color, size }) => (
-          <Image
-            source={bell}
-            tintColor={color}
-            style={{
-              width: size,
-              height: size,
-            }}
-          />
+          <RNText style={{ color, fontSize: size }}>⭐</RNText>
         ),
       },
     },

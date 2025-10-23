@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { ReportStatus, StatusSummary, getStatus, submitReport } from './store';
 
 interface CommunityStatusHook {
@@ -86,9 +86,21 @@ export function useCommunityStatus(featureId: string | null): CommunityStatusHoo
         setError(result.error || 'Failed to submit report');
         
         if (result.error?.includes('recently')) {
-          Alert.alert('Report Cooldown', result.error);
+          Toast.show({
+            type: 'info',
+            text1: 'Report Cooldown',
+            text2: result.error,
+            position: 'top',
+            visibilityTime: 4000,
+          });
         } else {
-          Alert.alert('Error', result.error || 'Failed to submit report. Please try again.');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: result.error || 'Failed to submit report. Please try again.',
+            position: 'top',
+            visibilityTime: 4000,
+          });
         }
         return;
       }
@@ -97,16 +109,25 @@ export function useCommunityStatus(featureId: string | null): CommunityStatusHoo
       await loadStatus();
       
       // Show success feedback
-      Alert.alert(
-        'Report Submitted', 
-        `Thank you for reporting this ${reportStatus === 'working' ? 'working' : 'broken'} ${featureId.includes('toilet') ? 'toilet' : 'fountain'}!`
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Report Submitted',
+        text2: `Thank you for reporting this ${reportStatus === 'working' ? 'working' : 'broken'} ${featureId.includes('toilet') ? 'toilet' : 'fountain'}!`,
+        position: 'top',
+        visibilityTime: 3000,
+      });
       
     } catch (err) {
       // Revert optimistic update
       setStatus(currentStatus);
       setError('Network error. Please try again.');
-      Alert.alert('Error', 'Failed to submit report. Please try again.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to submit report. Please try again.',
+        position: 'top',
+        visibilityTime: 4000,
+      });
       
       if (__DEV__) console.warn('[Community] Failed to submit report', err);
     } finally {

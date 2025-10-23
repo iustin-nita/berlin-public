@@ -39,6 +39,7 @@ export function MapScreen() {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
+  const hasInitiallyCentered = React.useRef(false);
   // Temporary visual-only flag: hide the photo placeholder section
   const SHOW_IMAGE_PLACEHOLDER = false;
 
@@ -161,6 +162,23 @@ export function MapScreen() {
       isMounted = false;
     };
   }, []);
+
+  // Fly to user location once it becomes available on initial load
+  // Set flag BEFORE camera operation to prevent race condition if effect reruns
+  React.useEffect(() => {
+    if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current) {
+      hasInitiallyCentered.current = true;
+      const camera: any = cameraRef.current;
+      if (camera?.setCamera) {
+        camera.setCamera({
+          centerCoordinate: userLocation,
+          zoomLevel: 14,
+          animationMode: 'flyTo',
+          animationDuration: 800,
+        });
+      }
+    }
+  }, [userLocation, styleLoaded]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -354,8 +372,6 @@ export function MapScreen() {
       bottomSheetRef.current?.close();
     }
   }, [selected]);
-
-  const initialCenter = userLocation ?? BERLIN_CENTER;
 
   const filteredFeatures = React.useMemo(() => {
     return features.filter((f) =>
@@ -596,7 +612,7 @@ export function MapScreen() {
             ) : null}
             <Mapbox.Camera
               ref={cameraRef}
-              centerCoordinate={initialCenter}
+              centerCoordinate={BERLIN_CENTER}
               zoomLevel={12}
               animationMode="flyTo"
               animationDuration={800}

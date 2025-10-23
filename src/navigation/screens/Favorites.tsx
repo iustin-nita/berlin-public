@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, View, Text as RNText } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, Text as RNText, Image } from 'react-native';
 import { Text } from '@react-navigation/elements';
 import { useFavorites } from '../../favorites/FavoritesContext';
 import { FeatureProps } from '../../types/api';
@@ -12,11 +12,23 @@ export function Favorites() {
     const getTypeInfo = (type: FeatureProps['type']) => {
       switch (type) {
         case 'toilet':
-          return { icon: '🚻', label: 'Public Toilet', color: '#E0F2F1' };
+          return {
+            icon: require('../../../assets/toilet.png'),
+            label: 'Public Toilet',
+            color: '#E0F2F1'
+          };
         case 'decorative':
-          return { icon: '⛲', label: 'Decorative Fountain', color: '#FFF3E0' };
+          return {
+            icon: require('../../../assets/decor.png'),
+            label: 'Decorative Fountain',
+            color: '#FFF3E0'
+          };
         default:
-          return { icon: '💧', label: 'Drinking Water', color: '#E3F2FD' };
+          return {
+            icon: require('../../../assets/water-drop.png'),
+            label: 'Drinking Water',
+            color: '#E3F2FD'
+          };
       }
     };
 
@@ -25,7 +37,7 @@ export function Favorites() {
     return (
       <View style={styles.card}>
         <View style={[styles.iconContainer, { backgroundColor: typeInfo.color }]}>
-          <RNText style={styles.typeIcon}>{typeInfo.icon}</RNText>
+          <Image source={typeInfo.icon} style={styles.typeIcon} resizeMode="contain" />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{item.title}</Text>
@@ -84,7 +96,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   typeIcon: {
-    fontSize: 20,
+    width: 24,
+    height: 24,
   },
   title: { fontSize: 16, fontWeight: '600' },
   subtitle: { color: '#6b7280' },

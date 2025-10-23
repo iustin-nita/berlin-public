@@ -1,6 +1,7 @@
 import React from 'react';
-import { Alert, Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import Toast from 'react-native-toast-message';
 import { FeatureProps } from '../../../types/api';
 import { getSanitizedInfo, isTwentyFourSeven } from './utils';
 import { useFavorites } from '../../../favorites/FavoritesContext';
@@ -51,12 +52,24 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceLine, onN
     try {
       const Clipboard = await import('expo-clipboard');
       await Clipboard.setStringAsync(payload.url);
-      Alert.alert('Link copied', 'The location link has been copied to your clipboard.');
+      Toast.show({
+        type: 'success',
+        text1: 'Link copied',
+        text2: 'The location link has been copied to your clipboard.',
+        position: 'top',
+        visibilityTime: 2000,
+      });
     } catch (e) {
       try {
         await Share.share({ message: payload.url });
       } catch {}
-      Alert.alert('Clipboard unavailable', 'Could not access the clipboard on this build. Shared the link instead.');
+      Toast.show({
+        type: 'info',
+        text1: 'Clipboard unavailable',
+        text2: 'Could not access the clipboard on this build. Shared the link instead.',
+        position: 'top',
+        visibilityTime: 3000,
+      });
     }
   }, [buildShareLink]);
   const handleOpenUrl = React.useCallback(async (url: string) => {
