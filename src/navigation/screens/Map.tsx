@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
 import { ActivityIndicator, View, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { FeatureProps } from '../../types/api';
 import { openDirections } from './map/navigationIntents';
@@ -10,6 +11,7 @@ import { ToggleBar } from './map/ToggleBar';
 import { ChoiceBar } from './map/ChoiceBar';
 import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
+import { MapHint } from './map/MapHint';
 import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
 
@@ -43,6 +45,7 @@ export function MapScreen() {
   const hasInitiallyCentered = React.useRef(false);
 
   const { pendingFeature, clearPendingFeature } = useMapNavigation();
+  const [showMapHint, setShowMapHint] = React.useState(false);
   // Temporary visual-only flag: hide the photo placeholder section
   const SHOW_IMAGE_PLACEHOLDER = false;
 
@@ -164,6 +167,29 @@ export function MapScreen() {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  // Check if user has seen the map hint, show if not
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const hasSeenHint = await AsyncStorage.getItem('hasSeenMapHint');
+        if (!hasSeenHint && styleLoaded && features.length > 0) {
+          setShowMapHint(true);
+        }
+      } catch {
+        // Ignore storage errors
+      }
+    })();
+  }, [styleLoaded, features]);
+
+  const handleDismissHint = React.useCallback(async () => {
+    setShowMapHint(false);
+    try {
+      await AsyncStorage.setItem('hasSeenMapHint', 'true');
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
 
   // Fly to user location once it becomes available on initial load
@@ -533,7 +559,29 @@ export function MapScreen() {
         }}
       />
     );
-    // Cluster circles
+    // Cluster glow effect (outer ring)
+    layers.push(
+      <Mapbox.CircleLayer
+        key="clusterGlow"
+        id="clusterGlow"
+        filter={["has", "point_count"] as any}
+        style={{
+          circleColor: '#1d8bf1',
+          circleOpacity: 0.2,
+          circleRadius: [
+            'step',
+            ['get', 'point_count'],
+            22,  // +6 from base
+            20,
+            26,  // +6 from base
+            50,
+            32,  // +6 from base
+          ] as any,
+          circleBlur: 0.5,
+        }}
+      />
+    );
+    // Cluster circles (main)
     layers.push(
       <Mapbox.CircleLayer
         key="clusteredPoints"
@@ -626,6 +674,13 @@ export function MapScreen() {
           const z = e?.properties?.zoom;
           if (typeof z === 'number') setCameraZoom(z);
         }}
+        onPress={(e) => {
+          // Deselect fountain when tapping empty map (no features)
+          if (!e.features || e.features.length === 0) {
+            setSelected(null);
+            setCandidates([]);
+          }
+        }}
       >
         {styleLoaded ? (
           <>
@@ -688,6 +743,10 @@ export function MapScreen() {
                   }
                   return;
                 }
+                // Dismiss hint on first marker tap
+                if (showMapHint) {
+                  handleDismissHint();
+                }
                 // If multiple features under tap, show quick chooser
                 const nonCluster = (e.features || []).filter((f: any) => !f.properties?.cluster);
                 if (nonCluster.length > 1) {
@@ -717,6 +776,8 @@ export function MapScreen() {
           <ActivityIndicator />
         </View>
       )}
+
+      {showMapHint && <MapHint onDismiss={handleDismissHint} />}
 
       <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
       <ChoiceBar
