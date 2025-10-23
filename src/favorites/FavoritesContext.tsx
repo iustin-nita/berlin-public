@@ -2,10 +2,14 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FeatureProps } from '../types/api';
 
-type FavoritesMap = Record<string, FeatureProps>;
+export type FavoriteItem = FeatureProps & {
+  dateAdded: number;
+};
+
+type FavoritesMap = Record<string, FavoriteItem>;
 
 type FavoritesContextValue = {
-  favorites: FeatureProps[];
+  favorites: FavoriteItem[];
   isFavorite: (id: string) => boolean;
   addFavorite: (item: FeatureProps) => void;
   removeFavorite: (id: string) => void;
@@ -14,12 +18,12 @@ type FavoritesContextValue = {
 
 const FavoritesContext = React.createContext<FavoritesContextValue | undefined>(undefined);
 
-const STORAGE_KEY = 'favorites:v1';
+const STORAGE_KEY = 'favorites:v2';
 
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [map, setMap] = React.useState<FavoritesMap>({});
 
-  // Load persisted favorites on mount
+  // Load persisted favorites on mount, with migration from v1
   React.useEffect(() => {
     (async () => {
       try {
@@ -28,14 +32,33 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
           if (__DEV__) console.warn('[Favorites] AsyncStorage not available, using in-memory storage');
           return;
         }
-        
+
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const parsed = JSON.parse(raw) as FavoritesMap | FeatureProps[];
-          const nextMap: FavoritesMap = Array.isArray(parsed)
-            ? Object.fromEntries(parsed.map((it) => [it.id, it]))
-            : parsed;
-          setMap(nextMap);
+          const parsed = JSON.parse(raw) as FavoritesMap;
+          setMap(parsed);
+        } else {
+          // Try migrating from v1
+          const oldRaw = await AsyncStorage.getItem('favorites:v1');
+          if (oldRaw) {
+            const oldParsed = JSON.parse(oldRaw) as Record<string, FeatureProps> | FeatureProps[];
+            const oldMap: Record<string, FeatureProps> = Array.isArray(oldParsed)
+              ? Object.fromEntries(oldParsed.map((it) => [it.id, it]))
+              : oldParsed;
+
+            // Add dateAdded timestamps (use current time for migrated items)
+            const migratedMap: FavoritesMap = Object.fromEntries(
+              Object.entries(oldMap).map(([id, item]) => [
+                id,
+                { ...item, dateAdded: Date.now() }
+              ])
+            );
+
+            setMap(migratedMap);
+            // Save migrated data to v2 storage
+            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migratedMap));
+            if (__DEV__) console.log('[Favorites] Migrated from v1 to v2');
+          }
         }
       } catch (e) {
         if (__DEV__) console.warn('[Favorites] Failed to load from AsyncStorage, using in-memory storage', e);
@@ -62,7 +85,10 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const addFavorite = React.useCallback(
     (item: FeatureProps) => {
       setMap((prev) => {
-        const next = { ...prev, [item.id]: item };
+        const next = {
+          ...prev,
+          [item.id]: { ...item, dateAdded: Date.now() }
+        };
         persist(next);
         return next;
       });
@@ -87,8 +113,11 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     (item: FeatureProps) => {
       setMap((prev) => {
         const next = { ...prev };
-        if (next[item.id]) delete next[item.id];
-        else next[item.id] = item;
+        if (next[item.id]) {
+          delete next[item.id];
+        } else {
+          next[item.id] = { ...item, dateAdded: Date.now() };
+        }
         persist(next);
         return next;
       });

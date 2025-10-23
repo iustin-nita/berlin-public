@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { Navigation } from './navigation';
 import { FavoritesProvider } from './favorites/FavoritesContext';
+import { MapNavigationProvider } from './navigation/MapNavigationContext';
 
 Asset.loadAsync([
   ...NavigationAssets,
@@ -31,20 +32,22 @@ export function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <FavoritesProvider>
-        <Navigation
-          theme={theme}
-          linking={{
-            enabled: 'auto',
-            prefixes: [
-              // Change the scheme to match your app's scheme defined in app.json
-              'berlinfountains://',
-            ],
-          }}
-          onReady={() => {
-            SplashScreen.hideAsync();
-          }}
-        />
-        <Toast />
+        <MapNavigationProvider>
+          <Navigation
+            theme={theme}
+            linking={{
+              enabled: 'auto',
+              prefixes: [
+                // Change the scheme to match your app's scheme defined in app.json
+                'berlinfountains://',
+              ],
+            }}
+            onReady={() => {
+              SplashScreen.hideAsync();
+            }}
+          />
+          <Toast />
+        </MapNavigationProvider>
       </FavoritesProvider>
     </GestureHandlerRootView>
   );

@@ -11,6 +11,7 @@ import { ChoiceBar } from './map/ChoiceBar';
 import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
 import { styles } from './Map.styles';
+import { useMapNavigation } from '../MapNavigationContext';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 // Simple dataset flags so we can toggle sources independently.
@@ -40,6 +41,8 @@ export function MapScreen() {
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
   const hasInitiallyCentered = React.useRef(false);
+
+  const { pendingFeature, clearPendingFeature } = useMapNavigation();
   // Temporary visual-only flag: hide the photo placeholder section
   const SHOW_IMAGE_PLACEHOLDER = false;
 
@@ -372,6 +375,42 @@ export function MapScreen() {
       bottomSheetRef.current?.close();
     }
   }, [selected]);
+
+  // Handle navigation from Favorites to Map: fly to feature and select it
+  React.useEffect(() => {
+    if (pendingFeature && styleLoaded && cameraRef.current && features.length > 0) {
+      // Switch to correct dataset if needed
+      const featureType = pendingFeature.type;
+      if (featureType === 'toilet' && activeDataset !== 'toilets') {
+        setActiveDataset('toilets');
+      } else if ((featureType === 'drinking' || featureType === 'decorative') && activeDataset !== 'fountains') {
+        setActiveDataset('fountains');
+      }
+
+      // Fly camera to feature location
+      const camera: any = cameraRef.current;
+      if (camera?.setCamera) {
+        camera.setCamera({
+          centerCoordinate: pendingFeature.coordinates,
+          zoomLevel: 15,
+          animationMode: 'flyTo',
+          animationDuration: 800,
+        });
+      }
+
+      // Select the feature (find it in features list to get the full object)
+      const found = features.find((f) => f.id === pendingFeature.id);
+      if (found) {
+        setSelected(found);
+      } else {
+        // Feature might not be loaded yet, just set the pending one
+        setSelected(pendingFeature);
+      }
+
+      // Clear pending feature after handling
+      clearPendingFeature();
+    }
+  }, [pendingFeature, styleLoaded, features, activeDataset, clearPendingFeature]);
 
   const filteredFeatures = React.useMemo(() => {
     return features.filter((f) =>
