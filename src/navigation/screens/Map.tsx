@@ -2,7 +2,7 @@ import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, View, Linking } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,8 +56,8 @@ export function MapScreen() {
   const SHOW_IMAGE_PLACEHOLDER = false;
 
   // Compute distance and simple walking ETA from user location to selected feature
-  const distanceLine = React.useMemo(() => {
-    if (!userLocation || !selected) return '';
+  const distanceInfo = React.useMemo(() => {
+    if (!userLocation || !selected) return null;
     const [userLng, userLat] = userLocation;
     const [destLng, destLat] = selected.coordinates;
     const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -78,81 +78,8 @@ export function MapScreen() {
     };
     // Assume ~4.5 km/h walking speed → 75 m/min
     const minutes = Math.max(1, Math.round(meters / 75));
-    return `📍 ${formatDistance(meters)} · ${minutes} min walk`;
+    return { distanceText: formatDistance(meters), etaMinutes: minutes };
   }, [userLocation, selected]);
-
-  // Clean "Info" text by stripping any embedded URL and trailing "Link:" label
-  const getSanitizedInfo = React.useCallback((info?: string, url?: string) => {
-    if (!info) return '';
-    let text = String(info).trim();
-    // Strip leading generic labels like "Info:" or "Informationen:"
-    text = text.replace(/^\s*(info(?:rmationen)?)[\s:]+/i, '').trim();
-    if (url) {
-      text = text.replace(url, '').trim();
-    }
-    // Remove a leftover trailing ", Link:" (with any spaces) if present
-    text = text.replace(/[,\s]*Link\s*:\s*$/i, '').trim();
-    // Collapse excess spaces
-    text = text.replace(/\s{2,}/g, ' ');
-    return text;
-  }, []);
-
-  // Build dynamic chips based on real data per type
-  const metaChips = React.useMemo(() => {
-    const chips: { icon: string; label: string }[] = [];
-    if (!selected) return chips;
-
-    // Helper: detect 24/7 from hours text
-    const isTwentyFourSeven = (hours?: string | null): boolean => {
-      if (!hours || typeof hours !== 'string') return false;
-      const h = hours.toLowerCase();
-      return (
-        /24\s*\/\s*7/.test(h) ||
-        /24h/.test(h) ||
-        /00:00\s*[-–]\s*24:00/.test(h) ||
-        /durchgehend/.test(h) ||
-        /ganztags/.test(h)
-      );
-    };
-
-    if (selected.type === 'toilet' && selected.toilet) {
-      if (isTwentyFourSeven(selected.toilet.hours)) {
-        chips.push({ icon: '⏱️', label: 'Always available' });
-      }
-      if (selected.toilet.barrierFree === true) {
-        chips.push({ icon: '♿', label: 'Accessible' });
-      } else if (selected.toilet.barrierReduced === true) {
-        chips.push({ icon: '♿', label: 'Accessible (reduced)' });
-      }
-      // No winter chip for toilets
-    }
-
-    if (selected.type === 'drinking' && selected.drinking) {
-      const infoClean = getSanitizedInfo(selected.drinking.info, selected.drinking.infoUrl || undefined);
-      const seasonMatch = infoClean.match(/^\s*Betriebszeit\s*:\s*(.+)$/i);
-      const seasonText = seasonMatch ? seasonMatch[1].trim() : '';
-      if (seasonText) {
-        const lower = seasonText.toLowerCase();
-        const yearRound = /ganzj[aä]hrig|year\s*round|全年/.test(lower);
-        if (!yearRound) {
-          chips.push({ icon: '❄️', label: 'Winter: Off' });
-        }
-      }
-    }
-
-    return chips;
-  }, [selected, getSanitizedInfo]);
-
-  const handleOpenUrl = React.useCallback(async (url: string) => {
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      }
-    } catch (e) {
-      if (__DEV__) console.warn('[Map] Failed to open URL', e);
-    }
-  }, []);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -666,7 +593,7 @@ export function MapScreen() {
         refInstance={bottomSheetRef}
         selected={selected}
         onClose={() => setSelected(null)}
-        distanceLine={distanceLine}
+        distanceInfo={distanceInfo}
         onNavigate={handleNavigate}
       />
     </View>
@@ -674,5 +601,3 @@ export function MapScreen() {
 }
 
 // styles moved to ./map/styles
-
-
