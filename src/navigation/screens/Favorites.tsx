@@ -1,8 +1,8 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, View, Text as RNText } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, View, Text as RNText } from 'react-native';
 import { Text } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFavorites, FavoriteItem } from '../../favorites/FavoritesContext';
 import { useMapNavigation } from '../MapNavigationContext';
@@ -37,7 +37,13 @@ export function Favorites() {
 
   // Calculate distance for each favorite
   const favoritesWithDistance = React.useMemo(() => {
-    if (!userLocation) return favorites.map((f) => ({ ...f, distance: Infinity }));
+    if (!userLocation) {
+      return favorites.map((f) => ({
+        ...f,
+        distance: Infinity,
+        distanceText: null,
+      }));
+    }
 
     return favorites.map((f) => {
       const distanceText = buildDistanceLine(userLocation, f);
@@ -78,30 +84,30 @@ export function Favorites() {
     return sorted;
   }, [favoritesWithDistance, sortBy]);
 
-  const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string } }) => {
-    // Get appropriate icon and color for each type
+  const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string | null } }) => {
+    // Get appropriate icon and color palette for each type
     const getTypeInfo = (type: FavoriteItem['type']) => {
       switch (type) {
         case 'toilet':
           return {
-            icon: 'business-outline' as const,
             label: 'Public Toilet',
-            color: '#E0F2F1',
-            iconColor: '#00897B'
+            badgeColor: '#E7F4FF',
+            badgeBorder: '#D0E6FF',
+            icon: require('../../../assets/toilet.png'),
           };
         case 'decorative':
           return {
-            icon: 'sparkles-outline' as const,
             label: 'Decorative Fountain',
-            color: '#FFF3E0',
-            iconColor: '#FB8C00'
+            badgeColor: '#FFF4EC',
+            badgeBorder: '#FFE1CC',
+            icon: require('../../../assets/decor.png'),
           };
         default:
           return {
-            icon: 'water-outline' as const,
             label: 'Drinking Water',
-            color: '#E3F2FD',
-            iconColor: '#1976D2'
+            badgeColor: '#E8F8FF',
+            badgeBorder: '#CCEFFF',
+            icon: require('../../../assets/water-drop.png'),
           };
       }
     };
@@ -115,18 +121,30 @@ export function Favorites() {
         accessibilityRole="button"
         accessibilityLabel={`View ${item.title} on map`}
       >
-        <View style={[styles.iconContainer, { backgroundColor: typeInfo.color }]}>
-          <Ionicons name={typeInfo.icon} size={24} color={typeInfo.iconColor} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>{item.title}</Text>
-          {item.description ? <RNText style={styles.subtitle}>{item.description}</RNText> : null}
-          <View style={styles.metaRow}>
-            <RNText style={styles.meta}>{typeInfo.label}</RNText>
-            {sortBy === 'distance' && item.distanceText ? (
-              <RNText style={styles.distance}>{item.distanceText}</RNText>
-            ) : null}
+        <View style={{ flex: 1, gap: 6 }}>
+          <View style={styles.titleRow}>
+            <View
+              style={[
+                styles.datasetBadge,
+                { backgroundColor: typeInfo.badgeColor, borderColor: typeInfo.badgeBorder },
+              ]}
+            >
+              <Image source={typeInfo.icon} style={styles.datasetIcon} resizeMode="contain" />
+            </View>
+            <Text style={styles.title} numberOfLines={2}>
+              {item.title}
+            </Text>
           </View>
+          {item.description ? (
+            <RNText style={styles.subtitle}>{item.description}</RNText>
+          ) : null}
+          <RNText style={styles.meta}>{typeInfo.label}</RNText>
+          {item.distanceText ? (
+            <View style={styles.distanceRow}>
+              <Feather name="navigation" size={14} color="#2563EB" style={{ marginRight: 4 }} />
+              <RNText style={styles.distance}>{item.distanceText}</RNText>
+            </View>
+          ) : null}
         </View>
         <Pressable
           style={styles.favButton}
@@ -135,9 +153,10 @@ export function Favorites() {
             toggleFavorite(item);
           }}
           accessibilityRole="button"
-          accessibilityLabel="Remove from favorites"
+          accessibilityLabel={`Remove ${item.title} from favorites`}
+          accessibilityHint="Double tap to remove this location from your saved list."
         >
-          <RNText style={{ fontSize: 18 }}>⭐</RNText>
+          <MaterialCommunityIcons name="star" size={22} color="#F59E0B" />
         </Pressable>
       </Pressable>
     );
@@ -146,79 +165,107 @@ export function Favorites() {
   if (favorites.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text>No favorites yet</Text>
-        <RNText style={styles.subtitle}>Tap the ⭐ on a location to save it.</RNText>
+        <View style={styles.emptyIcon}>
+          <MaterialCommunityIcons name="star-outline" size={28} color="#2563EB" />
+        </View>
+        <Text style={{ fontWeight: '600' }}>No favorites yet</Text>
+        <RNText style={styles.emptySubtitle}>
+          Explore the map and tap the star to keep fountains and toilets handy.
+        </RNText>
       </View>
     );
   }
 
-  return (
-    <View style={{ flex: 1 }}>
-      {/* Sort Controls */}
-      <View style={styles.sortControls}>
-        <Pressable
-          style={[styles.sortButton, sortBy === 'recent' && styles.sortButtonActive]}
-          onPress={() => setSortBy('recent')}
-          accessibilityRole="button"
-        >
-          <RNText style={[styles.sortButtonText, sortBy === 'recent' && styles.sortButtonTextActive]}>
-            Recently Added
-          </RNText>
-        </Pressable>
-        <Pressable
-          style={[styles.sortButton, sortBy === 'distance' && styles.sortButtonActive]}
-          onPress={() => setSortBy('distance')}
-          accessibilityRole="button"
-        >
-          <RNText style={[styles.sortButtonText, sortBy === 'distance' && styles.sortButtonTextActive]}>
-            Distance
-          </RNText>
-        </Pressable>
-        <Pressable
-          style={[styles.sortButton, sortBy === 'name' && styles.sortButtonActive]}
-          onPress={() => setSortBy('name')}
-          accessibilityRole="button"
-        >
-          <RNText style={[styles.sortButtonText, sortBy === 'name' && styles.sortButtonTextActive]}>
-            Name A-Z
-          </RNText>
-        </Pressable>
-      </View>
+  const sortOptions: Array<{ value: SortOption; label: string; icon: React.ComponentProps<typeof Feather>['name'] }> = [
+    { value: 'recent', label: 'Recently Added', icon: 'clock' },
+    { value: 'distance', label: 'Distance', icon: 'navigation' },
+    { value: 'name', label: 'Name A-Z', icon: 'type' },
+  ];
 
-      <FlatList
-        data={sortedFavorites}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-      />
+  const renderSortControls = React.useCallback(() => (
+    <View style={styles.sortControls}>
+      {sortOptions.map((option) => {
+        const active = sortBy === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            style={[styles.sortButton, active && styles.sortButtonActive]}
+            onPress={() => setSortBy(option.value)}
+            accessibilityRole="button"
+          >
+            <View style={styles.sortButtonInner}>
+              <Feather
+                name={option.icon}
+                size={14}
+                color={active ? '#FFFFFF' : '#6b7280'}
+              />
+              <RNText style={[styles.sortButtonText, active && styles.sortButtonTextActive]}>
+                {option.label}
+              </RNText>
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
+  ), [sortBy]);
+
+  return (
+    <FlatList
+      data={sortedFavorites}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.list}
+      ListHeaderComponent={renderSortControls}
+      ListHeaderComponentStyle={styles.sortHeader}
+      stickyHeaderIndices={[0]}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, gap: 12 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  sortControls: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 8,
+  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 32 },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E0ECFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptySubtitle: {
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  sortHeader: {
+    backgroundColor: '#ffffff',
+    paddingTop: 12,
+    paddingBottom: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+  },
+  sortControls: {
+    flexDirection: 'row',
+    gap: 8,
   },
   sortButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: '#f9fafb',
-    alignItems: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#f3f4f6',
   },
   sortButtonActive: {
-    backgroundColor: '#1976D2',
+    backgroundColor: '#2563EB',
+  },
+  sortButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   sortButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#6b7280',
   },
@@ -235,32 +282,40 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#e5e7eb',
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
   },
   title: { fontSize: 16, fontWeight: '600' },
   subtitle: { color: '#6b7280' },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  meta: { color: '#4b5563', fontSize: 13, fontWeight: '500' },
+  datasetBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
-    marginTop: 6,
+    justifyContent: 'center',
   },
-  meta: { color: '#334155', fontWeight: '500' },
+  datasetIcon: {
+    width: 18,
+    height: 18,
+  },
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   distance: {
-    fontSize: 12,
-    color: '#1976D2',
+    fontSize: 13,
+    color: '#2563EB',
     fontWeight: '600',
   },
   favButton: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    height: 36,
+    width: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFF7E6',
     alignItems: 'center',
     justifyContent: 'center',
   },
