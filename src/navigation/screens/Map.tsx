@@ -5,6 +5,7 @@ import React from 'react';
 import { ActivityIndicator, View, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
+import { useFocusEffect } from '@react-navigation/native';
 import { FeatureProps } from '../../types/api';
 import { openDirections } from './map/navigationIntents';
 import { ToggleBar } from './map/ToggleBar';
@@ -198,21 +199,59 @@ export function MapScreen() {
   }, []);
 
   // Fly to user location once it becomes available on initial load
-  // Set flag BEFORE camera operation to prevent race condition if effect reruns
-  React.useEffect(() => {
+  // Combined approach: useEffect for reactivity + useFocusEffect for navigation events
+  const performInitialZoom = React.useCallback(() => {
     if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current) {
-      hasInitiallyCentered.current = true;
       const camera: any = cameraRef.current;
-      if (camera?.setCamera) {
-        camera.setCamera({
-          centerCoordinate: userLocation,
-          zoomLevel: 14,
-          animationMode: 'flyTo',
-          animationDuration: 800,
-        });
+      try {
+        if (camera?.setCamera) {
+          camera.setCamera({
+            centerCoordinate: userLocation,
+            zoomLevel: 14,
+            animationMode: 'flyTo',
+            animationDuration: 800,
+          });
+          hasInitiallyCentered.current = true;
+        } else if (camera?.flyTo) {
+          camera.flyTo(userLocation, 800);
+          hasInitiallyCentered.current = true;
+        }
+      } catch (e) {
+        if (__DEV__) console.warn('[Map] Failed to zoom to location', e);
       }
     }
   }, [userLocation, styleLoaded]);
+
+  // Trigger zoom when location/style become available
+  React.useEffect(() => {
+    performInitialZoom();
+  }, [performInitialZoom]);
+
+  // Also trigger when screen comes into focus (e.g., from onboarding)
+  // Reset flag and wait for navigation animation to complete before zooming
+  useFocusEffect(
+    React.useCallback(() => {
+      // Reset the flag on focus to allow retry after navigation from onboarding
+      // This handles the case where Map mounted in background with incomplete conditions
+      if (hasInitiallyCentered.current) {
+        hasInitiallyCentered.current = false;
+      }
+
+      // Wait for navigation animation to complete (~300-500ms) before attempting zoom
+      // This ensures the map is fully visible and interactive
+      const timer1 = setTimeout(performInitialZoom, 600);
+      const timer2 = setTimeout(performInitialZoom, 1000);
+      const timer3 = setTimeout(performInitialZoom, 1500);
+      const timer4 = setTimeout(performInitialZoom, 2000);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
+      };
+    }, [performInitialZoom])
+  );
 
   React.useEffect(() => {
     if (selected) {

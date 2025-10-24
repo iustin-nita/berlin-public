@@ -5,12 +5,13 @@ import {
   StaticParamList,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text as RNText } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { MapScreen } from './screens/Map';
 import { Profile } from './screens/Profile';
 import { Settings } from './screens/Settings';
 import { Favorites } from './screens/Favorites';
 import { NotFound } from './screens/NotFound';
+import { Onboarding } from './screens/Onboarding';
 
 const HomeTabs = createBottomTabNavigator({
   screens: {
@@ -19,7 +20,7 @@ const HomeTabs = createBottomTabNavigator({
       options: {
         title: 'Map',
         tabBarIcon: ({ color, size }) => (
-          <RNText style={{ color, fontSize: size }}>📍</RNText>
+          <Feather name="map-pin" color={color} size={size} />
         ),
       },
     },
@@ -28,7 +29,7 @@ const HomeTabs = createBottomTabNavigator({
       options: {
         title: 'Favorites',
         tabBarIcon: ({ color, size }) => (
-          <RNText style={{ color, fontSize: size }}>⭐</RNText>
+          <Feather name="heart" color={color} size={size} />
         ),
       },
     },
@@ -41,6 +42,12 @@ const RootStack = createNativeStackNavigator({
       screen: HomeTabs,
       options: {
         title: 'Home',
+        headerShown: false,
+      },
+    },
+    Onboarding: {
+      screen: Onboarding,
+      options: {
         headerShown: false,
       },
     },

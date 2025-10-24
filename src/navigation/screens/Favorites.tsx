@@ -1,7 +1,8 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, View, Text as RNText, Image } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, Text as RNText } from 'react-native';
 import { Text } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFavorites, FavoriteItem } from '../../favorites/FavoritesContext';
 import { useMapNavigation } from '../MapNavigationContext';
@@ -83,21 +84,24 @@ export function Favorites() {
       switch (type) {
         case 'toilet':
           return {
-            icon: require('../../../assets/toilet.png'),
+            icon: 'business-outline' as const,
             label: 'Public Toilet',
-            color: '#E0F2F1'
+            color: '#E0F2F1',
+            iconColor: '#00897B'
           };
         case 'decorative':
           return {
-            icon: require('../../../assets/decor.png'),
+            icon: 'sparkles-outline' as const,
             label: 'Decorative Fountain',
-            color: '#FFF3E0'
+            color: '#FFF3E0',
+            iconColor: '#FB8C00'
           };
         default:
           return {
-            icon: require('../../../assets/water-drop.png'),
+            icon: 'water-outline' as const,
             label: 'Drinking Water',
-            color: '#E3F2FD'
+            color: '#E3F2FD',
+            iconColor: '#1976D2'
           };
       }
     };
@@ -112,7 +116,7 @@ export function Favorites() {
         accessibilityLabel={`View ${item.title} on map`}
       >
         <View style={[styles.iconContainer, { backgroundColor: typeInfo.color }]}>
-          <Image source={typeInfo.icon} style={styles.typeIcon} resizeMode="contain" />
+          <Ionicons name={typeInfo.icon} size={24} color={typeInfo.iconColor} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{item.title}</Text>
@@ -223,7 +227,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     padding: 12,
     borderRadius: 12,
@@ -237,10 +241,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  typeIcon: {
-    width: 24,
-    height: 24,
   },
   title: { fontSize: 16, fontWeight: '600' },
   subtitle: { color: '#6b7280' },

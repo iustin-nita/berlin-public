@@ -9,6 +9,7 @@ import Toast from 'react-native-toast-message';
 import { Navigation } from './navigation';
 import { FavoritesProvider } from './favorites/FavoritesContext';
 import { MapNavigationProvider } from './navigation/MapNavigationContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 Asset.loadAsync([
   ...NavigationAssets,
@@ -26,14 +27,40 @@ LogBox.ignoreLogs([
 
 export function App() {
   const colorScheme = useColorScheme();
+  const [onboardingChecked, setOnboardingChecked] = React.useState(false);
+  const [navReady, setNavReady] = React.useState(false);
+  const navigationRef = React.useRef<any>(null);
 
   const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme
+
+  React.useEffect(() => {
+    const checkOnboarding = async () => {
+      const hasCompleted = await AsyncStorage.getItem('hasCompletedOnboarding:v1');
+      if (hasCompleted !== 'true' && navigationRef.current) {
+        // Navigate to onboarding if not completed
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'Onboarding' }],
+        });
+      }
+      setOnboardingChecked(true);
+    };
+    checkOnboarding();
+  }, []);
+
+  // Hide splash screen when both navigation and onboarding check are ready
+  React.useEffect(() => {
+    if (onboardingChecked && navReady) {
+      SplashScreen.hideAsync();
+    }
+  }, [onboardingChecked, navReady]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <FavoritesProvider>
         <MapNavigationProvider>
           <Navigation
+            ref={navigationRef}
             theme={theme}
             linking={{
               enabled: 'auto',
@@ -42,9 +69,7 @@ export function App() {
                 'berlinfountains://',
               ],
             }}
-            onReady={() => {
-              SplashScreen.hideAsync();
-            }}
+            onReady={() => setNavReady(true)}
           />
           <Toast />
         </MapNavigationProvider>

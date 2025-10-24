@@ -209,11 +209,12 @@ This plan covers the following enhancements:
    - Offline banner with cache age indicator
    - Background refresh strategy
 
-**Remaining:**
-
-5. **Phase 5** (3-4 hrs) - OPTIONAL
-   - Optional, nice-to-have
-   - Onboarding flow for first-time users
+5. **Phase 5** ✅ COMPLETED (3-4 hrs)
+   - Created 3-slide onboarding carousel with animated dots
+   - AsyncStorage integration for first-launch detection
+   - Settings integration to replay tutorial
+   - Fixed flash-of-onboarding on app refresh
+   - Fixed initial zoom to user location after onboarding (600ms delay for navigation animation)
 
 ---
 
@@ -268,22 +269,24 @@ This plan covers the following enhancements:
 - [x] Stale cache still works when fetch fails
 - [ ] Community voting disabled when offline (not implemented - voting works regardless)
 
-### Phase 5
-- [ ] Onboarding shows on first launch only
-- [ ] All 3 slides are swipeable
-- [ ] Skip button works on any slide
-- [ ] "Get Started" completes onboarding
-- [ ] Settings can restart tutorial
-- [ ] Flag persists correctly
+### Phase 5 ✅ COMPLETED
+- [x] Onboarding shows on first launch only
+- [x] All 3 slides are swipeable
+- [x] Skip button works on any slide
+- [x] "Get Started" completes onboarding
+- [x] Settings can restart tutorial
+- [x] Flag persists correctly
+- [x] No flash of onboarding screen after completion
+- [x] Splash screen hides only after onboarding check completes
+- [x] Map zooms to user location after completing onboarding
 
 ---
 
 ## Notes
 
-- All phases are independent except Phase 2 depends on Phase 1 icons
+- All phases are complete ✅
 - Each phase can be committed separately
 - Share functionality already works (no changes needed)
-- Phase 5 (Onboarding) is optional and can be done later
 
 ---
 
@@ -295,22 +298,26 @@ This plan covers the following enhancements:
 - `src/navigation/screens/map/OfflineBanner.tsx` - Offline/stale cache indicator
 - `src/navigation/screens/map/useCachedFountainsData.ts` - Caching hook with background refresh
 - `src/hooks/useNetworkStatus.ts` - Network connectivity detection
+- `src/navigation/screens/Onboarding.tsx` - 3-slide onboarding carousel for first-time users
 
 ### Files Modified
-- `src/App.tsx` - Added MapNavigationProvider
-- `src/navigation/index.tsx` - Updated tab bar icons
+- `src/App.tsx` - Added MapNavigationProvider, onboarding check logic, splash screen management
+- `src/navigation/index.tsx` - Updated tab bar icons, added Onboarding screen to stack
 - `src/navigation/screens/Favorites.tsx` - Added navigation, sorting, distance display
-- `src/navigation/screens/Map.tsx` - Integrated caching, offline banner, tap improvements, hint system
+- `src/navigation/screens/Map.tsx` - Integrated caching, offline banner, tap improvements, hint system, fixed initial zoom race condition
+- `src/navigation/screens/Settings.tsx` - Added "Show Tutorial Again" button
 - `src/favorites/FavoritesContext.tsx` - Added dateAdded timestamps and v1→v2 migration
 
 ### Key Improvements
 1. **Performance**: Instant app startup with cached data (was: 2-3s load)
 2. **Offline Support**: Full functionality without internet connection
-3. **Better UX**: Sort favorites, tap to navigate, hints for new users
+3. **Better UX**: Sort favorites, tap to navigate, hints for new users, onboarding flow
 4. **Visual Polish**: Matching icons, cluster glow effects
 5. **Code Quality**: Removed 180+ lines of duplicate fetching logic
+6. **First-Time Experience**: Guided 3-slide tutorial explaining app features
+7. **Reliability**: Fixed initial location zoom race condition, eliminated onboarding flash
 
 ---
 
-**Status:** Phases 1-4 COMPLETED ✅ | Phase 5 (Onboarding) remaining (optional)
+**Status:** ALL PHASES (1-5) COMPLETED ✅
 **Last Updated:** 2025-10-23
