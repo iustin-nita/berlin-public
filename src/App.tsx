@@ -19,10 +19,12 @@ Asset.loadAsync([
 
 SplashScreen.preventAutoHideAsync();
 
-// Silence noisy NativeEventEmitter warnings from third-party modules in dev as early as possible
+// Silence noisy warnings from third-party modules in dev as early as possible
 LogBox.ignoreLogs([
   'new NativeEventEmitter()',
   'NativeEventEmitter',
+  'onDidFailLoadingMap is deprecated',
+  'rnmapbox maps',
 ]);
 
 export function App() {

@@ -5,6 +5,7 @@ import {
   StaticParamList,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { MapScreen } from './screens/Map';
 import { Profile } from './screens/Profile';
@@ -14,6 +15,20 @@ import { NotFound } from './screens/NotFound';
 import { Onboarding } from './screens/Onboarding';
 
 const HomeTabs = createBottomTabNavigator({
+  screenOptions: {
+    tabBarStyle: {
+      paddingTop: 12,
+      paddingBottom: 8,
+      height: 68,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: '#e2e8f0',
+    },
+    tabBarLabelStyle: {
+      fontSize: 12,
+      fontWeight: '500',
+      marginBottom: 4,
+    },
+  },
   screens: {
     Map: {
       screen: MapScreen,

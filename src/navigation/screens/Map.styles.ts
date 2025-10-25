@@ -45,23 +45,6 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
-  recenterButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 24,
-    height: 48,
-    width: 48,
-    backgroundColor: 'white',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  recenterGlyph: { fontSize: 20 },
   title: {
     fontSize: 20,
     fontWeight: '600',
@@ -294,5 +277,3 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-

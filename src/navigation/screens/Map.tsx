@@ -30,6 +30,9 @@ const DATASETS = {
 
 Mapbox.setAccessToken((Constants.expoConfig?.extra as any)?.mapboxPublicToken);
 
+// Suppress Mapbox telemetry to reduce noise
+Mapbox.setTelemetryEnabled(false);
+
 export function MapScreen() {
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
@@ -261,7 +264,7 @@ export function MapScreen() {
   // Helper to scale icon size when the feature is selected (data-driven styling).
   const makeSelectedIconSize = React.useCallback(
     (baseSize: number) =>
-      (['case', ['==', ['get', 'id'], selectedId], baseSize * 1.2, baseSize] as any),
+      (['case', ['==', ['get', 'id'], selectedId], baseSize * 1.25, baseSize] as any),
     [selectedId]
   );
 
@@ -330,6 +333,11 @@ export function MapScreen() {
 
   // Build ShapeSource children as an array (Mapbox's types prefer arrays of elements, not nulls)
   const shapeLayers = React.useMemo(() => {
+    const clusterPalette =
+      activeDataset === 'toilets'
+        ? { fill: '#1e3a8a', stroke: '#c7d2fe', glow: 'rgba(30,58,138,0.35)' }
+        : { fill: '#1d8bf1', stroke: '#bfdbfe', glow: 'rgba(29,139,241,0.28)' };
+
     const layers: React.ReactElement[] = [];
     layers.push(
       <Mapbox.CircleLayer
@@ -340,7 +348,7 @@ export function MapScreen() {
           circleRadius: 12,
           circleColor: '#ffffff',
           circleOpacity: 0.8,
-          circleStrokeColor: '#1d8bf1',
+          circleStrokeColor: clusterPalette.fill,
           circleStrokeWidth: 2,
         }}
       />
@@ -352,8 +360,8 @@ export function MapScreen() {
         id="clusterGlow"
         filter={["has", "point_count"] as any}
         style={{
-          circleColor: '#1d8bf1',
-          circleOpacity: 0.2,
+          circleColor: clusterPalette.glow,
+          circleOpacity: 1,
           circleRadius: [
             'step',
             ['get', 'point_count'],
@@ -374,8 +382,10 @@ export function MapScreen() {
         id="clusteredPoints"
         filter={["has", "point_count"] as any}
         style={{
-          circleColor: '#1d8bf1',
-          circleOpacity: 0.85,
+          circleColor: clusterPalette.fill,
+          circleOpacity: 0.92,
+          circleStrokeWidth: 2,
+          circleStrokeColor: clusterPalette.stroke,
           circleRadius: [
             'step',
             ['get', 'point_count'],
@@ -448,7 +458,7 @@ export function MapScreen() {
       );
     }
     return layers;
-  }, [selectedId, makeSelectedIconSize]);
+  }, [selectedId, makeSelectedIconSize, activeDataset]);
 
   return (
     <View style={styles.container}>
@@ -456,6 +466,9 @@ export function MapScreen() {
         style={styles.map}
         styleURL={Mapbox.StyleURL.Light}
         onDidFinishLoadingStyle={() => setStyleLoaded(true)}
+        onMapLoadingError={(error) => {
+          if (__DEV__) console.warn('[Map] Map loading error:', error);
+        }}
         onCameraChanged={(e: any) => {
           const z = e?.properties?.zoom;
           if (typeof z === 'number') setCameraZoom(z);
@@ -467,10 +480,11 @@ export function MapScreen() {
             setCandidates([]);
           }
         }}
+        logoEnabled={false}
+        attributionEnabled={false}
       >
         {styleLoaded ? (
           <>
-            {/* Register custom images used by SymbolLayer icons */}
             <Mapbox.Images
               images={{
                 fountainDrink: require('../../../assets/water-drop.png'),
@@ -551,7 +565,7 @@ export function MapScreen() {
                 if (found) setSelected(found);
               }}
             >
-               {shapeLayers}
+              {shapeLayers}
             </Mapbox.ShapeSource>
           </>
         ) : null}

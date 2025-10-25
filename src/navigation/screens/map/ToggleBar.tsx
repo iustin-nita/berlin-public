@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { ActiveDataset } from './useFountainsData';
 
 type ToggleBarProps = {
@@ -8,6 +9,9 @@ type ToggleBarProps = {
 };
 
 export function ToggleBar({ activeDataset, setActiveDataset }: ToggleBarProps) {
+  const fountainActive = activeDataset === 'fountains';
+  const toiletActive = activeDataset === 'toilets';
+
   return (
     <View style={styles.toggleBar} pointerEvents="box-none">
       <View style={styles.togglePill}>
@@ -15,11 +19,15 @@ export function ToggleBar({ activeDataset, setActiveDataset }: ToggleBarProps) {
           accessibilityRole="button"
           accessibilityLabel="Show fountains"
           onPress={() => setActiveDataset('fountains')}
-          style={[styles.toggleItem, activeDataset === 'fountains' && styles.toggleItemActive]}
+          style={[styles.toggleItem, fountainActive && styles.toggleItemActive]}
         >
           <View style={styles.toggleItemInner}>
-            <Image source={require('../../../../assets/water-drop.png')} style={styles.iconImage} />
-            <Text style={[styles.toggleText, activeDataset === 'fountains' && styles.toggleTextActive]}>
+            <Feather
+              name="droplet"
+              size={15}
+              color={fountainActive ? '#2563EB' : '#94a3b8'}
+            />
+            <Text style={[styles.toggleText, fountainActive && styles.toggleTextFountainActive]}>
               Fountains
             </Text>
           </View>
@@ -28,11 +36,15 @@ export function ToggleBar({ activeDataset, setActiveDataset }: ToggleBarProps) {
           accessibilityRole="button"
           accessibilityLabel="Show toilets"
           onPress={() => setActiveDataset('toilets')}
-          style={[styles.toggleItem, activeDataset === 'toilets' && styles.toggleItemActive]}
+          style={[styles.toggleItem, toiletActive && styles.toggleItemActive]}
         >
           <View style={styles.toggleItemInner}>
-            <Image source={require('../../../../assets/toilet.png')} style={styles.iconImage} />
-            <Text style={[styles.toggleText, activeDataset === 'toilets' && styles.toggleTextActive]}>
+            <Feather
+              name="users"
+              size={15}
+              color={toiletActive ? '#1f2937' : '#94a3b8'}
+            />
+            <Text style={[styles.toggleText, toiletActive && styles.toggleTextToiletActive]}>
               Toilets
             </Text>
           </View>
@@ -45,7 +57,7 @@ export function ToggleBar({ activeDataset, setActiveDataset }: ToggleBarProps) {
 const styles = StyleSheet.create({
   toggleBar: {
     position: 'absolute',
-    top: 12,
+    top: 8,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -76,11 +88,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  iconImage: {
-    width: 14,
-    height: 14,
-    resizeMode: 'contain',
-  },
-  toggleText: { color: '#475569', fontWeight: '600', fontSize: 13 },
-  toggleTextActive: { color: '#1d4ed8' },
+  toggleText: { color: '#94a3b8', fontWeight: '600', fontSize: 13 },
+  toggleTextFountainActive: { color: '#2563EB' },
+  toggleTextToiletActive: { color: '#1f2937' },
 });

@@ -8,13 +8,14 @@ import { useFavorites, FavoriteItem } from '../../favorites/FavoritesContext';
 import { useMapNavigation } from '../MapNavigationContext';
 import { buildDistanceLine } from './map/utils';
 
-type SortOption = 'distance' | 'recent' | 'name';
+type SortOption = 'distance' | 'recent';
 
 export function Favorites() {
   const { favorites, toggleFavorite } = useFavorites();
   const navigation = useNavigation();
   const { navigateToFeature } = useMapNavigation();
   const [sortBy, setSortBy] = React.useState<SortOption>('recent');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
 
   // Get user location for distance sorting
@@ -71,18 +72,15 @@ export function Favorites() {
 
     switch (sortBy) {
       case 'distance':
-        sorted.sort((a, b) => a.distance - b.distance);
+        sorted.sort((a, b) => sortOrder === 'asc' ? a.distance - b.distance : b.distance - a.distance);
         break;
       case 'recent':
-        sorted.sort((a, b) => b.dateAdded - a.dateAdded);
-        break;
-      case 'name':
-        sorted.sort((a, b) => a.title.localeCompare(b.title));
+        sorted.sort((a, b) => sortOrder === 'asc' ? a.dateAdded - b.dateAdded : b.dateAdded - a.dateAdded);
         break;
     }
 
     return sorted;
-  }, [favoritesWithDistance, sortBy]);
+  }, [favoritesWithDistance, sortBy, sortOrder]);
 
   const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string | null } }) => {
     // Get appropriate icon and color palette for each type
@@ -179,18 +177,29 @@ export function Favorites() {
   const sortOptions: Array<{ value: SortOption; label: string; icon: React.ComponentProps<typeof Feather>['name'] }> = [
     { value: 'recent', label: 'Recently Added', icon: 'clock' },
     { value: 'distance', label: 'Distance', icon: 'navigation' },
-    { value: 'name', label: 'Name A-Z', icon: 'type' },
   ];
+
+  const handleSortPress = React.useCallback((option: SortOption) => {
+    if (sortBy === option) {
+      // Toggle order if same option is clicked
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new sort option with default order
+      setSortBy(option);
+      setSortOrder(option === 'recent' ? 'desc' : 'asc');
+    }
+  }, [sortBy, sortOrder]);
 
   const renderSortControls = React.useCallback(() => (
     <View style={styles.sortControls}>
       {sortOptions.map((option) => {
         const active = sortBy === option.value;
+        const arrow = active ? (sortOrder === 'asc' ? 'arrow-up' : 'arrow-down') : null;
         return (
           <Pressable
             key={option.value}
             style={[styles.sortButton, active && styles.sortButtonActive]}
-            onPress={() => setSortBy(option.value)}
+            onPress={() => handleSortPress(option.value)}
             accessibilityRole="button"
           >
             <View style={styles.sortButtonInner}>
@@ -202,12 +211,19 @@ export function Favorites() {
               <RNText style={[styles.sortButtonText, active && styles.sortButtonTextActive]}>
                 {option.label}
               </RNText>
+              {arrow && (
+                <Feather
+                  name={arrow}
+                  size={12}
+                  color="#FFFFFF"
+                />
+              )}
             </View>
           </Pressable>
         );
       })}
     </View>
-  ), [sortBy]);
+  ), [sortBy, sortOrder, handleSortPress]);
 
   return (
     <FlatList
@@ -224,7 +240,7 @@ export function Favorites() {
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
+  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40, gap: 12 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 32 },
   emptyIcon: {
     width: 64,
@@ -239,11 +255,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   sortHeader: {
-    backgroundColor: '#ffffff',
-    paddingTop: 12,
     paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e7eb',
   },
   sortControls: {
     flexDirection: 'row',

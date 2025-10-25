@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 type RecenterButtonProps = {
   onPress: () => void;
@@ -8,7 +9,7 @@ type RecenterButtonProps = {
 export function RecenterButton({ onPress }: RecenterButtonProps) {
   return (
     <Pressable accessibilityLabel="Recenter map to my location" onPress={onPress} style={styles.recenterButton}>
-      <Text style={styles.recenterGlyph}>➤</Text>
+      <Feather name="navigation" size={22} color="#ffffff" />
     </Pressable>
   );
 }
@@ -18,19 +19,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     bottom: 24,
-    height: 48,
-    width: 48,
-    backgroundColor: 'white',
-    borderRadius: 24,
+    height: 52,
+    width: 52,
+    backgroundColor: '#2563EB',
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 3,
+    shadowColor: '#1d4ed8',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  recenterGlyph: { fontSize: 20 },
 });
-
 
