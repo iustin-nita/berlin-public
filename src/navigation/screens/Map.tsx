@@ -18,6 +18,7 @@ import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
 import { useCachedFountainsData } from './map/useCachedFountainsData';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { MapScaleBar } from './map/MapScaleBar';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 // Simple dataset flags so we can toggle sources independently.
@@ -47,7 +48,9 @@ export function MapScreen() {
   const cameraRef = React.useRef<Mapbox.Camera>(null);
   const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
+  const [cameraCenter, setCameraCenter] = React.useState<[number, number]>(BERLIN_CENTER);
   const hasInitiallyCentered = React.useRef(false);
+  const hasHandledPendingFeature = React.useRef(false);
 
   const { pendingFeature, clearPendingFeature } = useMapNavigation();
   const [showMapHint, setShowMapHint] = React.useState(false);
@@ -130,8 +133,9 @@ export function MapScreen() {
 
   // Fly to user location once it becomes available on initial load
   // Combined approach: useEffect for reactivity + useFocusEffect for navigation events
+  // Skip if we have a pendingFeature or have already handled one (navigating from Favorites)
   const performInitialZoom = React.useCallback(() => {
-    if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current) {
+    if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current && !pendingFeature && !hasHandledPendingFeature.current) {
       const camera: any = cameraRef.current;
       try {
         if (camera?.setCamera) {
@@ -150,7 +154,7 @@ export function MapScreen() {
         if (__DEV__) console.warn('[Map] Failed to zoom to location', e);
       }
     }
-  }, [userLocation, styleLoaded]);
+  }, [userLocation, styleLoaded, pendingFeature]);
 
   // Trigger zoom when location/style become available
   React.useEffect(() => {
@@ -194,12 +198,31 @@ export function MapScreen() {
   // Handle navigation from Favorites to Map: fly to feature and select it
   React.useEffect(() => {
     if (pendingFeature && styleLoaded && cameraRef.current && features.length > 0) {
+      // Mark that we've handled a pending feature (prevents initial zoom from firing)
+      hasHandledPendingFeature.current = true;
+      hasInitiallyCentered.current = true;
+
       // Switch to correct dataset if needed
       const featureType = pendingFeature.type;
-      if (featureType === 'toilet' && activeDataset !== 'toilets') {
-        setActiveDataset('toilets');
-      } else if ((featureType === 'drinking' || featureType === 'decorative') && activeDataset !== 'fountains') {
-        setActiveDataset('fountains');
+      const needsDatasetSwitch =
+        (featureType === 'toilet' && activeDataset !== 'toilets') ||
+        ((featureType === 'drinking' || featureType === 'decorative') && activeDataset !== 'fountains');
+
+      if (needsDatasetSwitch) {
+        if (featureType === 'toilet') {
+          setActiveDataset('toilets');
+        } else {
+          setActiveDataset('fountains');
+        }
+        // Wait for next tick to let dataset switch complete, then select
+        setTimeout(() => {
+          const found = features.find((f) => f.id === pendingFeature.id);
+          setSelected(found || pendingFeature);
+        }, 50);
+      } else {
+        // No dataset switch needed, select immediately
+        const found = features.find((f) => f.id === pendingFeature.id);
+        setSelected(found || pendingFeature);
       }
 
       // Fly camera to feature location
@@ -211,15 +234,6 @@ export function MapScreen() {
           animationMode: 'flyTo',
           animationDuration: 800,
         });
-      }
-
-      // Select the feature (find it in features list to get the full object)
-      const found = features.find((f) => f.id === pendingFeature.id);
-      if (found) {
-        setSelected(found);
-      } else {
-        // Feature might not be loaded yet, just set the pending one
-        setSelected(pendingFeature);
       }
 
       // Clear pending feature after handling
@@ -472,6 +486,13 @@ export function MapScreen() {
         onCameraChanged={(e: any) => {
           const z = e?.properties?.zoom;
           if (typeof z === 'number') setCameraZoom(z);
+          const center = e?.properties?.center;
+          if (Array.isArray(center) && center.length >= 2) {
+            const [lng, lat] = center as [number, number];
+            if (typeof lng === 'number' && typeof lat === 'number') {
+              setCameraCenter([lng, lat]);
+            }
+          }
         }}
         onPress={(e) => {
           // Deselect fountain when tapping empty map (no features)
@@ -482,6 +503,7 @@ export function MapScreen() {
         }}
         logoEnabled={false}
         attributionEnabled={false}
+        scaleBarEnabled={false}
       >
         {styleLoaded ? (
           <>
@@ -587,6 +609,11 @@ export function MapScreen() {
       />
 
       <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
+      <MapScaleBar
+        zoomLevel={cameraZoom}
+        latitude={cameraCenter[1]}
+        offsetBottom={candidates.length > 1 ? 164 : 32}
+      />
       <ChoiceBar
         candidates={candidates}
         onPick={(c) => {

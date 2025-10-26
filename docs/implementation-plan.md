@@ -287,6 +287,7 @@ This plan covers the following enhancements:
 - All phases are complete ✅
 - Each phase can be committed separately
 - Share functionality already works (no changes needed)
+- React Native New Architecture is disabled for now; Mapbox (`@rnmapbox/maps` 10.x) crashes on Android with `ViewTagResolver` when Fabric is enabled. Revisit once Mapbox adds official support.
 
 ---
 

@@ -1,52 +1,45 @@
-# Starter Template with React Navigation
+# Berlin Public
 
-This is a minimal starter template for React Native apps using Expo and React Navigation.
+Find drinking fountains, public toilets, and essential amenities across Berlin. Works offline with community-driven updates.
 
-It includes the following:
+## Features
 
-- Example [Native Stack](https://reactnavigation.org/docs/native-stack-navigator) with a nested [Bottom Tab](https://reactnavigation.org/docs/bottom-tab-navigator)
-- Web support with [React Native for Web](https://necolas.github.io/react-native-web/)
-- TypeScript support and configured for React Navigation
-- Automatic [deep link](https://reactnavigation.org/docs/deep-linking) and [URL handling configuration](https://reactnavigation.org/docs/configuring-links)
-- Theme support [based on system appearance](https://reactnavigation.org/docs/themes/#using-the-operating-system-preferences)
-- Expo [Development Build](https://docs.expo.dev/develop/development-builds/introduction/) with [Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/)
-- Edge-to-edge configured on Android with [`react-native-edge-to-edge`](https://www.npmjs.com/package/react-native-edge-to-edge)
+- 🚰 **Drinking Fountains** - Find nearby water fountains with community verification
+- 🚻 **Public Restrooms** - Locate toilets across Berlin with status updates
+- 📍 **Offline Mode** - All data works without internet after initial download
+- ⭐ **Favorites** - Save your go-to spots for quick access
+- 👍 **Community Voting** - Vote on amenity status to help others
+- 🗺️ **Beautiful Maps** - Powered by Mapbox with smooth navigation
+
+## Tech Stack
+
+- React Native with Expo SDK 53
+- React Navigation (Native Stack + Bottom Tabs)
+- Mapbox Maps for React Native
+- TypeScript
+- Offline-first architecture with AsyncStorage
+- Community data from OpenStreetMap
 
 ## Getting Started
 
-1. Create a new project using this template:
-
+1. Install dependencies:
    ```sh
-   npx create-expo-app@latest --template react-navigation/template
+   npm install
    ```
 
-2. Edit the `app.json` file to configure the `name`, `slug`, `scheme` and bundle identifiers (`ios.bundleIdentifier` and `android.bundleIdentifier`) for your app.
+2. Set up environment variables for Mapbox (see app.config.ts)
 
-3. Edit the `src/App.tsx` file to start working on your app.
+3. Start the development server:
+   ```sh
+   npm start
+   ```
 
-## Running the app
-
-- Install the dependencies:
-
-  ```sh
-  npm install
-  ```
-
-- Start the development server:
-
-  ```sh
-  npm start
-  ```
-
-- Build and run iOS and Android development builds:
-
-  ```sh
-  npm run ios
-  # or
-  npm run android
-  ```
-
-- In the terminal running the development server, press `i` to open the iOS simulator, `a` to open the Android device or emulator, or `w` to open the web browser.
+4. Build and run on device:
+   ```sh
+   npm run ios
+   # or
+   npm run android
+   ```
 
 ## Notes
 
@@ -56,11 +49,24 @@ We highly recommend using the development builds for normal development and test
 
 The `ios` and `android` folder are gitignored in the project by default as they are automatically generated during the build process ([Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/)). This means that you should not edit these folders directly and use [config plugins](https://docs.expo.dev/config-plugins/) instead. However, if you need to edit these folders, you can remove them from the `.gitignore` file so that they are tracked by git.
 
-## Resources
+## Publishing
 
-- [React Navigation documentation](https://reactnavigation.org/)
-- [Expo documentation](https://docs.expo.dev/)
+See `PRE_LAUNCH_CHECKLIST.md` for complete publishing guide.
 
----
+Quick commands:
+```sh
+# Build for Android
+eas build --platform android --profile production
 
-Demo assets are from [lucide.dev](https://lucide.dev/)
+# Build for iOS
+eas build --platform ios --profile production
+```
+
+## License
+
+MIT
+
+## Contact
+
+- Email: contact@blobstudio.dev
+- Privacy Policy: https://iustin-nita.github.io/berlin-privacy-policy/PRIVACY_POLICY.md

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Animated, {
@@ -16,14 +15,15 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BrandMark } from '../../components/BrandMark';
 
 const { width, height } = Dimensions.get('window');
 
 const SLIDES = [
   {
     id: 1,
-    title: 'Welcome to Berlin Fountains',
-    description: 'Find drinking water fountains & public toilets in Berlin',
+    title: 'Welcome to Berlin Public',
+    description: 'Find drinking fountains, public toilets & more in Berlin',
     icon: '📍',
     subtitle: 'Tap any marker to see details',
   },
@@ -39,7 +39,7 @@ const SLIDES = [
     title: 'Community Voting',
     description: 'Help others by reporting status',
     icon: '👍',
-    subtitle: 'Is this fountain working? Let us know!',
+    subtitle: 'Is it working? Let others know!',
   },
 ];
 
@@ -131,6 +131,14 @@ export function Onboarding() {
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
+      <View style={styles.brandHeader}>
+        <BrandMark
+          imageSize={64}
+          spacing={14}
+          textStyle={styles.brandText}
+        />
+      </View>
+
       {/* Slides */}
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -191,6 +199,16 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 10,
     padding: 10,
+  },
+  brandHeader: {
+    paddingTop: 88,
+    alignItems: 'center',
+    paddingBottom: 24,
+  },
+  brandText: {
+    fontSize: 20,
+    letterSpacing: 2,
+    color: '#0f172a',
   },
   skipText: {
     fontSize: 16,

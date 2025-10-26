@@ -15,20 +15,24 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'berlin-fountains',
-  slug: 'berlin-fountains',
+  name: 'Berlin Public',
+  slug: 'berlin-public',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  newArchEnabled: true,
-  scheme: 'berlinfountains',
+  // Mapbox (@rnmapbox/maps) does not yet support the React Native New Architecture (Fabric/JSI),
+  // so keep it disabled to avoid Android ViewTagResolver crashes when layers mount.
+  newArchEnabled: false,
+  scheme: 'berlinpublic',
+  description: 'Find public fountains, restrooms, and essential amenities across Berlin. Works offline with community-driven updates.',
+  primaryColor: '#3B82F6',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.satya164.reactnavigationtemplate',
+    bundleIdentifier: 'com.blobstudio.berlinpublic',
     infoPlist: {
       NSLocationWhenInUseUsageDescription:
-        'We use your location to show nearby fountains on the map.',
+        'We use your location to show nearby public amenities and calculate walking distances.',
     },
   },
   android: {
@@ -36,7 +40,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    package: 'com.satya164.reactnavigationtemplate',
+    package: 'com.blobstudio.berlinpublic',
+    permissions: [
+      'ACCESS_FINE_LOCATION',
+      'ACCESS_COARSE_LOCATION'
+    ],
   },
   web: {
     favicon: './assets/favicon.png',
@@ -53,7 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-location',
       {
-        locationWhenInUsePermission: 'Show current location on map.',
+        locationWhenInUsePermission: 'Show your location and find nearby public amenities.',
       },
     ],
     'react-native-edge-to-edge',
@@ -71,10 +79,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,
     eas: {
-      slug: 'berlin-fountains',
-      projectId: '217c7d26-d257-41ef-b6cf-19e97076d160',
+      projectId: '3b7bdd53-574d-4362-ae7c-6d9883b4dfca',
     },
   },
 });
-
 

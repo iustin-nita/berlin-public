@@ -1,23 +1,29 @@
 {
   "expo": {
-    "name": "berlin-fountains",
-    "slug": "berlin-fountains",
+    "name": "Berlin Public",
+    "slug": "berlin-public",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "scheme": "berlinfountains",
+    "newArchEnabled": false,
+    "scheme": "berlinpublic",
+    "description": "Find public fountains, restrooms, and essential amenities across Berlin. Works offline with community-driven updates.",
+    "primaryColor": "#3B82F6",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.satya164.reactnavigationtemplate"
+      "bundleIdentifier": "com.blobstudio.berlinpublic"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.satya164.reactnavigationtemplate"
+      "package": "com.blobstudio.berlinpublic",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,7 +48,7 @@
     "extra": {
       "mapboxPublicToken": "pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw",
       "eas": {
-        "projectId": "217c7d26-d257-41ef-b6cf-19e97076d160"
+        "projectId": "3b7bdd53-574d-4362-ae7c-6d9883b4dfca"
       }
     }
   }

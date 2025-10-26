@@ -91,6 +91,9 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
     if (selected.type === 'toilet' && selected.toilet) {
       if (selected.toilet.barrierFree === true) chips.push({ icon: '♿', label: 'Accessible' });
       else if (selected.toilet.barrierReduced === true) chips.push({ icon: '♿', label: 'Accessible (reduced)' });
+      if (selected.toilet.hours && isTwentyFourSeven(selected.toilet.hours)) {
+        chips.push({ icon: '🕐', label: '24/7' });
+      }
     }
     if (selected.type === 'drinking' && selected.drinking) {
       const infoClean = getSanitizedInfo(selected.drinking.info, selected.drinking.infoUrl || undefined);
@@ -273,11 +276,6 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
                     <Text style={styles.detailLabel}>Hours</Text>
                     <View style={styles.detailValueContainer}>
                       <Text style={styles.detailValue}>{selected.toilet.hours}</Text>
-                      {isTwentyFourSeven(selected.toilet.hours) ? (
-                        <View style={styles.inlineBadge}>
-                          <Text style={styles.inlineBadgeText}>24/7</Text>
-                        </View>
-                      ) : null}
                     </View>
                   </View>
                 ) : null}
@@ -360,7 +358,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
               </View>
               {!hasReports ? (
                 <Text style={styles.statusHint}>
-                  Be the first to report how this location is performing.
+                  Help others - report current status
                 </Text>
               ) : null}
               <View style={styles.voteRow}>

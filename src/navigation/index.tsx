@@ -13,6 +13,7 @@ import { Settings } from './screens/Settings';
 import { Favorites } from './screens/Favorites';
 import { NotFound } from './screens/NotFound';
 import { Onboarding } from './screens/Onboarding';
+import { MapHeader } from './screens/map/MapHeader';
 
 const HomeTabs = createBottomTabNavigator({
   screenOptions: {
@@ -34,6 +35,7 @@ const HomeTabs = createBottomTabNavigator({
       screen: MapScreen,
       options: {
         title: 'Map',
+        header: () => <MapHeader />,
         tabBarIcon: ({ color, size }) => (
           <Feather name="map-pin" color={color} size={size} />
         ),

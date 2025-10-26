@@ -82,6 +82,57 @@ export function Favorites() {
     return sorted;
   }, [favoritesWithDistance, sortBy, sortOrder]);
 
+  const sortOptions: Array<{ value: SortOption; label: string; icon: React.ComponentProps<typeof Feather>['name'] }> = [
+    { value: 'recent', label: 'Recently Added', icon: 'clock' },
+    { value: 'distance', label: 'Distance', icon: 'navigation' },
+  ];
+
+  const handleSortPress = React.useCallback((option: SortOption) => {
+    if (sortBy === option) {
+      // Toggle order if same option is clicked
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new sort option with default order
+      setSortBy(option);
+      setSortOrder(option === 'recent' ? 'desc' : 'asc');
+    }
+  }, [sortBy, sortOrder]);
+
+  const renderSortControls = React.useCallback(() => (
+    <View style={styles.sortControls}>
+      {sortOptions.map((option) => {
+        const active = sortBy === option.value;
+        const arrow = active ? (sortOrder === 'asc' ? 'arrow-up' : 'arrow-down') : null;
+        return (
+          <Pressable
+            key={option.value}
+            style={[styles.sortButton, active && styles.sortButtonActive]}
+            onPress={() => handleSortPress(option.value)}
+            accessibilityRole="button"
+          >
+            <View style={styles.sortButtonInner}>
+              <Feather
+                name={option.icon}
+                size={14}
+                color={active ? '#FFFFFF' : '#6b7280'}
+              />
+              <RNText style={[styles.sortButtonText, active && styles.sortButtonTextActive]}>
+                {option.label}
+              </RNText>
+              {arrow && (
+                <Feather
+                  name={arrow}
+                  size={12}
+                  color="#FFFFFF"
+                />
+              )}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  ), [sortBy, sortOrder, handleSortPress]);
+
   const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string | null } }) => {
     // Get appropriate icon and color palette for each type
     const getTypeInfo = (type: FavoriteItem['type']) => {
@@ -173,57 +224,6 @@ export function Favorites() {
       </View>
     );
   }
-
-  const sortOptions: Array<{ value: SortOption; label: string; icon: React.ComponentProps<typeof Feather>['name'] }> = [
-    { value: 'recent', label: 'Recently Added', icon: 'clock' },
-    { value: 'distance', label: 'Distance', icon: 'navigation' },
-  ];
-
-  const handleSortPress = React.useCallback((option: SortOption) => {
-    if (sortBy === option) {
-      // Toggle order if same option is clicked
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Set new sort option with default order
-      setSortBy(option);
-      setSortOrder(option === 'recent' ? 'desc' : 'asc');
-    }
-  }, [sortBy, sortOrder]);
-
-  const renderSortControls = React.useCallback(() => (
-    <View style={styles.sortControls}>
-      {sortOptions.map((option) => {
-        const active = sortBy === option.value;
-        const arrow = active ? (sortOrder === 'asc' ? 'arrow-up' : 'arrow-down') : null;
-        return (
-          <Pressable
-            key={option.value}
-            style={[styles.sortButton, active && styles.sortButtonActive]}
-            onPress={() => handleSortPress(option.value)}
-            accessibilityRole="button"
-          >
-            <View style={styles.sortButtonInner}>
-              <Feather
-                name={option.icon}
-                size={14}
-                color={active ? '#FFFFFF' : '#6b7280'}
-              />
-              <RNText style={[styles.sortButtonText, active && styles.sortButtonTextActive]}>
-                {option.label}
-              </RNText>
-              {arrow && (
-                <Feather
-                  name={arrow}
-                  size={12}
-                  color="#FFFFFF"
-                />
-              )}
-            </View>
-          </Pressable>
-        );
-      })}
-    </View>
-  ), [sortBy, sortOrder, handleSortPress]);
 
   return (
     <FlatList
