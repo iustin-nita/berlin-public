@@ -12,7 +12,8 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "prebuildCommand": "npx expo prebuild --clean --platform $EAS_BUILD_PLATFORM"
     }
   },
   "submit": {

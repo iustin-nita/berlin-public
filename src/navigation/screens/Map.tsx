@@ -14,11 +14,13 @@ import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
 import { MapHint } from './map/MapHint';
 import { OfflineBanner } from './map/OfflineBanner';
+import { OutOfBoundsBanner } from './map/OutOfBoundsBanner';
 import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
 import { useCachedFountainsData } from './map/useCachedFountainsData';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { MapScaleBar } from './map/MapScaleBar';
+import { isInBerlin } from '../../utils/location';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 // Simple dataset flags so we can toggle sources independently.
@@ -37,6 +39,7 @@ Mapbox.setTelemetryEnabled(false);
 export function MapScreen() {
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
+  const [isOutOfBounds, setIsOutOfBounds] = React.useState(false);
   const [selected, setSelected] = React.useState<FeatureProps | null>(null);
   const [candidates, setCandidates] = React.useState<FeatureProps[]>([]);
   const [activeDataset, setActiveDataset] = React.useState<'fountains' | 'toilets'>('fountains');
@@ -107,6 +110,14 @@ export function MapScreen() {
       isMounted = false;
     };
   }, []);
+
+  // Check if user is outside Berlin boundaries
+  React.useEffect(() => {
+    if (userLocation) {
+      const [lon, lat] = userLocation;
+      setIsOutOfBounds(!isInBerlin(lat, lon));
+    }
+  }, [userLocation]);
 
   // Check if user has seen the map hint, show if not
   React.useEffect(() => {
@@ -606,6 +617,11 @@ export function MapScreen() {
         cacheAge={cacheAge}
         isStale={isStale}
         onRefresh={refresh}
+      />
+
+      <OutOfBoundsBanner
+        isOutOfBounds={isOutOfBounds}
+        offsetTop={(!isOnline || isStale) ? 132 : 60}
       />
 
       <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
