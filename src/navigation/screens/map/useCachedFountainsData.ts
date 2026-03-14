@@ -17,6 +17,7 @@ type UseCachedFountainsDataReturn = {
   error: string | null;
   cacheAge: number | null; // Age in milliseconds
   isStale: boolean;
+  hasCachedData: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -34,6 +35,7 @@ export function useCachedFountainsData(): UseCachedFountainsDataReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cacheTimestamp, setCacheTimestamp] = useState<number | null>(null);
+  const [hasCachedData, setHasCachedData] = useState(false);
 
   // Calculate cache age
   const cacheAge = cacheTimestamp ? Date.now() - cacheTimestamp : null;
@@ -46,6 +48,7 @@ export function useCachedFountainsData(): UseCachedFountainsDataReturn {
       if (cached) {
         const parsed: CacheData = JSON.parse(cached);
         setCacheTimestamp(parsed.timestamp);
+        setHasCachedData(true);
         return parsed.data;
       }
     } catch (e) {
@@ -64,6 +67,7 @@ export function useCachedFountainsData(): UseCachedFountainsDataReturn {
       };
       await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       setCacheTimestamp(cacheData.timestamp);
+      setHasCachedData(data.length > 0);
     } catch (e) {
       if (__DEV__) console.warn('[Cache] Failed to save to cache', e);
     }
@@ -266,6 +270,7 @@ export function useCachedFountainsData(): UseCachedFountainsDataReturn {
     error,
     cacheAge,
     isStale,
+    hasCachedData,
     refresh,
   };
 }

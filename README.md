@@ -1,12 +1,12 @@
 # Berlin Public
 
-Find drinking fountains, public toilets, and essential amenities across Berlin. Works offline with community-driven updates.
+Find drinking fountains, public toilets, and essential amenities across Berlin. Amenity data is cached for offline browsing after the first successful sync, with community-driven status updates.
 
 ## Features
 
 - 🚰 **Drinking Fountains** - Find nearby water fountains with community verification
 - 🚻 **Public Restrooms** - Locate toilets across Berlin with status updates
-- 📍 **Offline Mode** - All data works without internet after initial download
+- 📍 **Offline Browsing** - Cached amenity data remains available after the first successful sync
 - ⭐ **Favorites** - Save your go-to spots for quick access
 - 👍 **Community Voting** - Vote on amenity status to help others
 - 🗺️ **Beautiful Maps** - Powered by Mapbox with smooth navigation
@@ -17,8 +17,8 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
 - React Navigation (Native Stack + Bottom Tabs)
 - Mapbox Maps for React Native
 - TypeScript
-- Offline-first architecture with AsyncStorage
-- Community data from OpenStreetMap
+- Offline-first amenity caching with AsyncStorage
+- Berlin public GIS/WFS data feeds plus community status reports
 
 ## Getting Started
 
@@ -27,7 +27,7 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
    npm install
    ```
 
-2. Set up environment variables for Mapbox (see app.config.ts)
+2. Set up environment variables for Mapbox and Supabase (see `app.config.ts`)
 
 3. Start the development server:
    ```sh
@@ -47,7 +47,7 @@ This project uses a [development build](https://docs.expo.dev/develop/developmen
 
 We highly recommend using the development builds for normal development and testing.
 
-The `ios` and `android` folder are gitignored in the project by default as they are automatically generated during the build process ([Continuous Native Generation](https://docs.expo.dev/workflow/continuous-native-generation/)). This means that you should not edit these folders directly and use [config plugins](https://docs.expo.dev/config-plugins/) instead. However, if you need to edit these folders, you can remove them from the `.gitignore` file so that they are tracked by git.
+This project is now prebuild-first: `app.config.ts` is the source of truth for native configuration, and `ios/` and `android/` are generated artifacts. Regenerate them with `npm run prebuild`, `npm run prebuild:android`, or `npm run prebuild:ios` instead of editing committed native files by hand.
 
 ## Publishing
 

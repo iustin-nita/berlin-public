@@ -10,7 +10,7 @@ Berlin Public ("we", "our", or "us") operates the Berlin Public mobile applicati
 
 ### Location Data
 - We collect your device's location **only when you use the app** to show nearby fountains, restrooms, and other public amenities
-- Location data is processed **locally on your device** and is not stored on our servers
+- Location data is primarily processed **locally on your device** for nearby results and directions
 - We use your location to calculate distances and provide navigation features
 
 ### Usage Data
@@ -20,7 +20,8 @@ Berlin Public ("we", "our", or "us") operates the Berlin Public mobile applicati
 
 ### Community Contributions
 - When you vote on amenities (working/not working), your vote is submitted anonymously
-- No personal information is associated with community votes
+- Anonymous vote submissions may include the selected amenity identifier and its map coordinates
+- No account, name, or contact information is associated with community votes
 
 ## How We Use Your Data
 
@@ -31,20 +32,22 @@ We use your location data to:
 
 ## Data Storage
 
-- All amenity data (fountain locations, restroom locations, etc.) is stored **locally on your device**
-- Location data is **never stored or transmitted to our servers**
-- The app functions fully offline after initial data download
+- Cached amenity data (fountain locations, restroom locations, etc.) is stored **locally on your device**
+- Your live device location is not stored on our servers by the app
+- The app can browse cached amenity data after the first successful sync, but map tiles and live refreshes require connectivity
 
 ## Third-Party Services
 
 We use the following third-party services:
 - **Mapbox** - For map display and navigation features. Mapbox may collect location data. See [Mapbox Privacy Policy](https://www.mapbox.com/legal/privacy)
-- **OpenStreetMap** - Source of public amenity data. See [OpenStreetMap Privacy Policy](https://wiki.osmfoundation.org/wiki/Privacy_Policy)
+- **Berlin public GIS data services** - Source of public amenity datasets used by the app
+- **Supabase** - Used for anonymous community status submissions when backend reporting is enabled
+- **OpenStreetMap / external map apps** - May be used indirectly when you open directions in supported navigation apps
 
 ## Data Security
 
 - We implement appropriate security measures to protect your data
-- Since location data is not stored or transmitted, there is minimal security risk
+- Since the app does not require user accounts and stores cached amenity data locally, the amount of personal data we handle is limited
 
 ## Children's Privacy
 

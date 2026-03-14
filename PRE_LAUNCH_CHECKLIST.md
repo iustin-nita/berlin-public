@@ -27,9 +27,9 @@
   - [ ] Deny permission - app handles gracefully
 - [ ] Test offline mode
   - [ ] Turn off WiFi/data after data loads
-  - [ ] Map still works
+  - [ ] Cached amenity data still works
   - [ ] Favorites still accessible
-  - [ ] Voting queue saves offline votes
+  - [ ] Voting is clearly disabled while offline
 - [ ] Test slow/bad network conditions
 - [ ] Test all features:
   - [ ] Map view loads
@@ -51,6 +51,7 @@
 - [ ] No TODO comments left behind
 - [ ] Remove unused dependencies
 - [ ] Check for any API key exposure
+- [ ] Run `npm run prebuild:android` and confirm the generated native project matches `app.config.ts`
 
 ### 4. Legal Requirements
 - [ ] Privacy policy is accessible and accurate

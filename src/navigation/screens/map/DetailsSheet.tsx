@@ -14,10 +14,11 @@ export type DetailsSheetProps = {
   selected: FeatureProps | null;
   onClose: () => void;
   distanceInfo: { distanceText: string; etaMinutes: number } | null;
+  isOnline: boolean;
   onNavigate?: () => void;
 };
 
-export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onNavigate }: DetailsSheetProps) {
+export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isOnline, onNavigate }: DetailsSheetProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const isFav = selected ? isFavorite(selected.id) : false;
   
@@ -28,6 +29,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
   const totalReports = workingCount + notWorkingCount;
   const hasReports = totalReports > 0;
   const myVote = communityStatus.status?.myVote;
+  const votingDisabled = !isOnline || communityStatus.submitting;
 
   const buildShareLink = React.useCallback((): { url: string; message: string; title: string } | null => {
     if (!selected) return null;
@@ -336,9 +338,13 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
             <View style={styles.statusCard}>
               <View style={styles.statusHeader}>
                 <Text style={styles.statusLabel}>Community Status</Text>
-                {communityStatus.status ? (
+                {communityStatus.loading ? (
+                  <View style={[styles.statusBadge, { backgroundColor: '#F5F5F5' }]}>
+                    <ActivityIndicator size="small" color="#616161" />
+                  </View>
+                ) : communityStatus.status ? (
                   <View style={[
-                    styles.statusBadge, 
+                    styles.statusBadge,
                     { backgroundColor: getStatusBadgeColor(communityStatus.status).backgroundColor }
                   ]}>
                     <Text style={[
@@ -356,10 +362,16 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
                   </View>
                 )}
               </View>
-              {!hasReports ? (
+              {!hasReports && !communityStatus.loading ? (
                 <Text style={styles.statusHint}>
                   Help others - report current status
                 </Text>
+              ) : !isOnline ? (
+                <Text style={styles.statusHint}>
+                  Voting is available only while online. You can still browse cached amenity details offline.
+                </Text>
+              ) : communityStatus.loading ? (
+                <Text style={styles.statusHint}> </Text>
               ) : null}
               <View style={styles.voteRow}>
                 <Pressable
@@ -369,7 +381,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
                     myVote === 'working' && styles.voteButtonSelected,
                   ]}
                   accessibilityRole="button"
-                  disabled={communityStatus.submitting}
+                  disabled={votingDisabled}
                   onPress={() => {
                     if (selected) {
                       communityStatus.submitReport('working', {
@@ -411,7 +423,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, onN
                     myVote === 'not_working' && styles.voteButtonSelected,
                   ]}
                   accessibilityRole="button"
-                  disabled={communityStatus.submitting}
+                  disabled={votingDisabled}
                   onPress={() => {
                     if (selected) {
                       communityStatus.submitReport('not_working', {

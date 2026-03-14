@@ -12,6 +12,55 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stateOverlay: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 140,
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  stateTitle: {
+    color: '#0f172a',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  stateText: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  stateActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  stateButton: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  stateButtonPrimary: {
+    backgroundColor: '#1976D2',
+  },
+  stateButtonSecondary: {
+    backgroundColor: '#E2E8F0',
+  },
+  stateButtonText: {
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  stateButtonTextSecondary: {
+    color: '#1e293b',
+    fontWeight: '600',
+  },
   sheetContent: {
     padding: 16,
   },

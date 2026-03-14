@@ -10,7 +10,7 @@ Find fountains, restrooms & public amenities in Berlin. Works offline.
 
 **Never search for a public restroom or water fountain again!**
 
-Berlin Public helps you find essential public amenities across Berlin, whether you're a local or a tourist. All data works offline, so you can navigate the city without worrying about data usage.
+Berlin Public helps you find essential public amenities across Berlin, whether you're a local or a tourist. Amenity data is cached on device after the first successful sync so you can keep browsing saved results with limited connectivity.
 
 **FEATURES:**
 
@@ -21,12 +21,12 @@ Berlin Public helps you find essential public amenities across Berlin, whether y
 
 🚻 **Public Restrooms**
 - Locate toilets across Berlin
-- Filter by accessibility, cost, and opening hours
-- Community ratings for cleanliness and availability
+- View accessibility, cost, operator, and opening-hours details when available
+- See community working/not working reports
 
-📍 **Works Offline**
-- All locations stored locally on your device
-- No internet required after initial download
+📍 **Cached For Offline Browsing**
+- Amenity data is stored locally on your device after the first successful sync
+- Browse cached locations later even with limited connectivity
 - Perfect for travelers and locals alike
 
 ⭐ **Community-Driven**
@@ -52,10 +52,10 @@ Berlin Public helps you find essential public amenities across Berlin, whether y
 - Wi-Fi hotspots
 
 **PRIVACY FIRST:**
-- Location data never leaves your device
+- Your precise device location is used for nearby results and directions
 - No tracking or analytics
-- Works completely offline
-- Open source and transparent
+- Community status reports are submitted anonymously
+- Map tiles and live refreshes require connectivity
 
 **PERFECT FOR:**
 - Tourists exploring Berlin
@@ -68,7 +68,7 @@ Berlin Public is completely free with no ads or in-app purchases.
 
 ---
 
-Data sourced from OpenStreetMap and community contributions.
+Data sourced from Berlin public GIS feeds, Mapbox map rendering, and community contributions.
 
 ## Keywords (separate with commas)
 

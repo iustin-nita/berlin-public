@@ -2,7 +2,7 @@ import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
@@ -46,6 +46,7 @@ export function MapScreen() {
   const [useDecorWms, setUseDecorWms] = React.useState(false);
   // Render map layers only after the style is fully loaded to avoid Android dev-reload native view tag errors
   const [styleLoaded, setStyleLoaded] = React.useState(false);
+  const [mapLoadFailed, setMapLoadFailed] = React.useState(false);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
   const cameraRef = React.useRef<Mapbox.Camera>(null);
@@ -59,10 +60,8 @@ export function MapScreen() {
   const [showMapHint, setShowMapHint] = React.useState(false);
 
   // Use caching hook for data management
-  const { features, loading, cacheAge, isStale, refresh } = useCachedFountainsData();
+  const { features, loading, error, cacheAge, isStale, hasCachedData, refresh } = useCachedFountainsData();
   const isOnline = useNetworkStatus();
-  // Temporary visual-only flag: hide the photo placeholder section
-  const SHOW_IMAGE_PLACEHOLDER = false;
 
   // Compute distance and simple walking ETA from user location to selected feature
   const distanceInfo = React.useMemo(() => {
@@ -490,9 +489,13 @@ export function MapScreen() {
       <Mapbox.MapView
         style={styles.map}
         styleURL={Mapbox.StyleURL.Light}
-        onDidFinishLoadingStyle={() => setStyleLoaded(true)}
-        onMapLoadingError={(error) => {
-          if (__DEV__) console.warn('[Map] Map loading error:', error);
+        onDidFinishLoadingStyle={() => {
+          setStyleLoaded(true);
+          setMapLoadFailed(false);
+        }}
+        onMapLoadingError={() => {
+          setMapLoadFailed(true);
+          if (__DEV__) console.warn('[Map] Map loading error');
         }}
         onCameraChanged={(e: any) => {
           const z = e?.properties?.zoom;
@@ -505,7 +508,7 @@ export function MapScreen() {
             }
           }
         }}
-        onPress={(e) => {
+        onPress={(e: any) => {
           // Deselect fountain when tapping empty map (no features)
           if (!e.features || e.features.length === 0) {
             setSelected(null);
@@ -610,13 +613,56 @@ export function MapScreen() {
         </View>
       )}
 
+      {!loading && (mapLoadFailed || (error && !hasCachedData && features.length === 0)) ? (
+        <View style={styles.stateOverlay}>
+          <Text style={styles.stateTitle}>
+            {mapLoadFailed
+              ? 'Map failed to load'
+              : !isOnline
+              ? 'No cached data available yet'
+              : 'Unable to load amenities'}
+          </Text>
+          <Text style={styles.stateText}>
+            {mapLoadFailed
+              ? 'The map view could not finish loading. Check your connection and Mapbox configuration, then try again.'
+              : !isOnline
+              ? 'Connect once to download Berlin amenity data, then you can keep browsing cached results when offline.'
+              : 'The amenity feed could not be loaded right now. You can try again in a moment.'}
+          </Text>
+          <View style={styles.stateActions}>
+            <Pressable
+              style={[styles.stateButton, styles.stateButtonPrimary]}
+              onPress={() => {
+                refresh().catch(() => {});
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading amenity data"
+            >
+              <Text style={styles.stateButtonText}>Retry</Text>
+            </Pressable>
+            {!hasLocationPermission ? (
+              <Pressable
+                style={[styles.stateButton, styles.stateButtonSecondary]}
+                onPress={handleRecenter}
+                accessibilityRole="button"
+                accessibilityLabel="Request location access"
+              >
+                <Text style={styles.stateButtonTextSecondary}>Enable location</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+
       {showMapHint && <MapHint onDismiss={handleDismissHint} />}
 
       <OfflineBanner
         isOnline={isOnline}
         cacheAge={cacheAge}
         isStale={isStale}
-        onRefresh={refresh}
+        onRefresh={() => {
+          refresh().catch(() => {});
+        }}
       />
 
       <OutOfBoundsBanner
@@ -651,6 +697,7 @@ export function MapScreen() {
         selected={selected}
         onClose={() => setSelected(null)}
         distanceInfo={distanceInfo}
+        isOnline={isOnline}
         onNavigate={handleNavigate}
       />
     </View>
