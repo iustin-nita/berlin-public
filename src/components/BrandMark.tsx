@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   text: {
-    fontFamily: 'Roboto',
+    fontFamily: 'Montserrat_600SemiBold',
     fontSize: 24,
     letterSpacing: .5,
     color: '#111827',

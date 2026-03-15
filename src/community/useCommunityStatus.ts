@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import Toast from 'react-native-toast-message';
+import { toast } from 'sonner-native';
 import { ReportStatus, StatusSummary, getStatus, submitReport } from './store';
 
 interface CommunityStatusHook {
@@ -86,20 +86,12 @@ export function useCommunityStatus(featureId: string | null): CommunityStatusHoo
         setError(result.error || 'Failed to submit report');
         
         if (result.error?.includes('recently')) {
-          Toast.show({
-            type: 'info',
-            text1: 'Report Cooldown',
-            text2: result.error,
-            position: 'top',
-            visibilityTime: 4000,
+          toast('Report Cooldown', {
+            description: result.error,
           });
         } else {
-          Toast.show({
-            type: 'error',
-            text1: 'Error',
-            text2: result.error || 'Failed to submit report. Please try again.',
-            position: 'top',
-            visibilityTime: 4000,
+          toast.error('Error', {
+            description: result.error || 'Failed to submit report. Please try again.',
           });
         }
         return;
@@ -108,25 +100,16 @@ export function useCommunityStatus(featureId: string | null): CommunityStatusHoo
       // Reload actual status after successful submission
       await loadStatus();
       
-      // Show success feedback
-      Toast.show({
-        type: 'success',
-        text1: 'Report Submitted',
-        text2: `Thank you for reporting this ${reportStatus === 'working' ? 'working' : 'broken'} ${featureId.includes('toilet') ? 'toilet' : 'fountain'}!`,
-        position: 'top',
-        visibilityTime: 3000,
+      toast.success('Report Submitted', {
+        description: `Thank you for reporting this ${reportStatus === 'working' ? 'working' : 'broken'} ${featureId.startsWith('toilet_') ? 'toilet' : 'fountain'}!`,
       });
       
     } catch (err) {
       // Revert optimistic update
       setStatus(currentStatus);
       setError('Network error. Please try again.');
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Failed to submit report. Please try again.',
-        position: 'top',
-        visibilityTime: 4000,
+      toast.error('Error', {
+        description: 'Failed to submit report. Please try again.',
       });
       
       if (__DEV__) console.warn('[Community] Failed to submit report', err);

@@ -1,13 +1,16 @@
 import React from 'react';
-import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator, Image } from 'react-native';
+import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
-import Toast from 'react-native-toast-message';
+import { toast } from 'sonner-native';
 import { FeatureProps } from '../../../types/api';
 import { getSanitizedInfo, isTwentyFourSeven } from './utils';
 import { useFavorites } from '../../../favorites/FavoritesContext';
 import { useCommunityStatus } from '../../../community/useCommunityStatus';
 import { getStatusBadgeText, getStatusBadgeColor } from '../../../community/utils';
+import { getCategoryByKey, getVoteLabels } from '../../../constants/categories';
+import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { lightImpact } from '../../../utils/haptics';
 
 export type DetailsSheetProps = {
   refInstance: React.RefObject<BottomSheet | null>;
@@ -21,8 +24,7 @@ export type DetailsSheetProps = {
 export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isOnline, onNavigate }: DetailsSheetProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const isFav = selected ? isFavorite(selected.id) : false;
-  
-  // Community status hook
+
   const communityStatus = useCommunityStatus(selected?.id || null);
   const workingCount = communityStatus.status?.totals.working ?? 0;
   const notWorkingCount = communityStatus.status?.totals.notWorking ?? 0;
@@ -31,11 +33,16 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
   const myVote = communityStatus.status?.myVote;
   const votingDisabled = !isOnline || communityStatus.submitting;
 
+  const voteLabels = React.useMemo(
+    () => getVoteLabels(selected?.type),
+    [selected?.type]
+  );
+
   const buildShareLink = React.useCallback((): { url: string; message: string; title: string } | null => {
     if (!selected) return null;
     const [lng, lat] = selected.coordinates;
     const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-    const title = selected.title || 'Water Source';
+    const title = selected.title || 'Location';
     const message = `${title}\n${url}`;
     return { url, message, title };
   }, [selected]);
@@ -44,14 +51,8 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
     try {
       const payload = buildShareLink();
       if (!payload) return;
-      await Share.share({
-        message: payload.message,
-        url: payload.url,
-        title: payload.title,
-      });
-    } catch (e) {
-      // No-op; user may cancel
-    }
+      await Share.share({ message: payload.message, url: payload.url, title: payload.title });
+    } catch {}
   }, [buildShareLink]);
 
   const handleCopy = React.useCallback(async () => {
@@ -60,26 +61,13 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
     try {
       const Clipboard = await import('expo-clipboard');
       await Clipboard.setStringAsync(payload.url);
-      Toast.show({
-        type: 'success',
-        text1: 'Link copied',
-        text2: 'The location link has been copied to your clipboard.',
-        position: 'top',
-        visibilityTime: 2000,
-      });
-    } catch (e) {
-      try {
-        await Share.share({ message: payload.url });
-      } catch {}
-      Toast.show({
-        type: 'info',
-        text1: 'Clipboard unavailable',
-        text2: 'Could not access the clipboard on this build. Shared the link instead.',
-        position: 'top',
-        visibilityTime: 3000,
-      });
+      toast.success('Link copied', { description: 'The location link has been copied to your clipboard.' });
+    } catch {
+      try { await Share.share({ message: payload.url }); } catch {}
+      toast('Clipboard unavailable', { description: 'Could not access the clipboard on this build.' });
     }
   }, [buildShareLink]);
+
   const handleOpenUrl = React.useCallback(async (url: string) => {
     try {
       const supported = await Linking.canOpenURL(url);
@@ -88,13 +76,13 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
   }, []);
 
   const metaChips = React.useMemo(() => {
-    const chips: { icon: string; label: string }[] = [];
+    const chips: { iconName: React.ComponentProps<typeof Feather>['name']; label: string }[] = [];
     if (!selected) return chips;
     if (selected.type === 'toilet' && selected.toilet) {
-      if (selected.toilet.barrierFree === true) chips.push({ icon: '♿', label: 'Accessible' });
-      else if (selected.toilet.barrierReduced === true) chips.push({ icon: '♿', label: 'Accessible (reduced)' });
+      if (selected.toilet.barrierFree === true) chips.push({ iconName: 'check-circle', label: 'Accessible' });
+      else if (selected.toilet.barrierReduced === true) chips.push({ iconName: 'check-circle', label: 'Accessible (reduced)' });
       if (selected.toilet.hours && isTwentyFourSeven(selected.toilet.hours)) {
-        chips.push({ icon: '🕐', label: '24/7' });
+        chips.push({ iconName: 'clock', label: '24/7' });
       }
     }
     if (selected.type === 'drinking' && selected.drinking) {
@@ -104,37 +92,27 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
       if (seasonText) {
         const lower = seasonText.toLowerCase();
         const yearRound = /ganzj[aä]hrig|year\s*round|全年/.test(lower);
-        if (!yearRound) chips.push({ icon: '❄️', label: 'Winter: Off' });
+        if (!yearRound) chips.push({ iconName: 'cloud-snow', label: 'Winter: Off' });
       }
+    }
+    if (selected.type === 'coolSpace' && selected.coolSpace) {
+      if (selected.coolSpace.wheelchairAccessible === true) chips.push({ iconName: 'check-circle', label: 'Accessible' });
+    }
+    if (selected.type === 'evCharging' && selected.evCharging) {
+      if (selected.evCharging.isPublic === true) chips.push({ iconName: 'globe', label: 'Public' });
     }
     return chips;
   }, [selected]);
 
   const typeConfig = React.useMemo(() => {
-    if (!selected) return null;
-    switch (selected.type) {
-      case 'toilet':
-        return {
-          label: 'Public Toilet',
-          pillBg: '#E7F4FF',
-          pillBorder: '#D0E6FF',
-          icon: require('../../../../assets/toilet.png'),
-        };
-      case 'decorative':
-        return {
-          label: 'Decorative Fountain',
-          pillBg: '#FFF4EC',
-          pillBorder: '#FFE1CC',
-          icon: require('../../../../assets/decor.png'),
-        };
-      default:
-        return {
-          label: 'Drinking Water',
-          pillBg: '#E8F8FF',
-          pillBorder: '#CCEFFF',
-          icon: require('../../../../assets/water-drop.png'),
-        };
-    }
+    if (!selected?.type) return null;
+    const cat = getCategoryByKey(selected.type);
+    if (!cat) return null;
+    return {
+      key: cat.key,
+      label: cat.label,
+      color: cat.color,
+    };
   }, [selected]);
 
   return (
@@ -152,15 +130,8 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
             <View style={styles.headerSection}>
               <View style={styles.headerTopRow}>
                 {typeConfig ? (
-                  <View
-                    style={[
-                      styles.typePill,
-                      { backgroundColor: typeConfig.pillBg, borderColor: typeConfig.pillBorder },
-                    ]}
-                  >
-                    <View style={styles.typeIconWrap}>
-                      <Image source={typeConfig.icon} style={styles.typeIcon} />
-                    </View>
+                  <View style={[styles.typePill, { backgroundColor: typeConfig.color }]}>
+                    <CategoryIcon categoryKey={typeConfig.key} size={12} color="#ffffff" />
                     <Text style={styles.typePillText}>{typeConfig.label}</Text>
                   </View>
                 ) : null}
@@ -168,9 +139,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   style={[styles.favButton, isFav && styles.favButtonActive]}
                   accessibilityRole="button"
                   accessibilityLabel={isFav ? 'Remove from favorites' : 'Add to favorites'}
-                  onPress={() => {
-                    if (selected) toggleFavorite(selected);
-                  }}
+                  onPress={() => { lightImpact(); if (selected) toggleFavorite(selected); }}
                 >
                   <MaterialCommunityIcons
                     name={isFav ? 'star' : 'star-outline'}
@@ -179,7 +148,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   />
                 </Pressable>
               </View>
-              <Text style={styles.title}>{selected.title || 'Water Source'}</Text>
+              <Text style={styles.title}>{selected.title || 'Location'}</Text>
               {selected.description ? (
                 <View style={styles.locationRow}>
                   <Feather name="map-pin" size={14} color="#64748b" />
@@ -188,7 +157,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
               ) : null}
               {distanceInfo ? (
                 <View style={styles.distanceRow}>
-                  <Feather name="navigation" size={14} color="#2563EB" />
+                  <Feather name="navigation" size={14} color="#1a56db" />
                   <Text style={styles.distanceText}>
                     {distanceInfo.distanceText} · {distanceInfo.etaMinutes} min walk
                   </Text>
@@ -200,55 +169,28 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
               <View style={styles.metaRow}>
                 {metaChips.map((c, idx) => (
                   <View key={`${c.label}-${idx}`} style={styles.chip}>
-                    <Text style={styles.chipIcon}>{c.icon}</Text>
+                    <Feather name={c.iconName} size={11} color="#64748b" />
                     <Text style={styles.chipText}>{c.label}</Text>
                   </View>
                 ))}
               </View>
             ) : null}
 
+            {/* Drinking fountain details */}
             {selected.type === 'drinking' && selected.drinking ? (
               <View style={styles.detailsCard}>
                 {selected.drinking.fountainType ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Type</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.drinking.fountainType}</Text>
-                    </View>
-                  </View>
+                  <DetailRow label="Type" value={selected.drinking.fountainType} />
                 ) : null}
                 {selected.drinking.yearBuilt != null ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Year built</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.drinking.yearBuilt}</Text>
-                    </View>
-                  </View>
+                  <DetailRow label="Year built" value={String(selected.drinking.yearBuilt)} />
                 ) : null}
                 {(() => {
                   const infoClean = getSanitizedInfo(selected.drinking!.info, selected.drinking!.infoUrl || undefined);
                   const seasonMatch = infoClean.match(/^\s*Betriebszeit\s*:\s*(.+)$/i);
                   const seasonText = seasonMatch ? seasonMatch[1].trim() : '';
-                  if (seasonText) {
-                    return (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Operating season</Text>
-                        <View style={styles.detailValueContainer}>
-                          <Text style={styles.detailValue}>{seasonText}</Text>
-                        </View>
-                      </View>
-                    );
-                  }
-                  if (infoClean) {
-                    return (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Info</Text>
-                        <View style={styles.detailValueContainer}>
-                          <Text style={styles.detailValue}>{infoClean}</Text>
-                        </View>
-                      </View>
-                    );
-                  }
+                  if (seasonText) return <DetailRow label="Operating season" value={seasonText} />;
+                  if (infoClean) return <DetailRow label="Info" value={infoClean} />;
                   return null;
                 })()}
                 {selected.drinking.infoUrl ? (
@@ -271,70 +213,108 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
               </View>
             ) : null}
 
+            {/* Toilet details */}
             {selected.type === 'toilet' && selected.toilet ? (
               <View style={styles.detailsCard}>
-                {selected.toilet.hours ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Hours</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.toilet.hours}</Text>
-                    </View>
-                  </View>
-                ) : null}
+                {selected.toilet.hours ? <DetailRow label="Hours" value={selected.toilet.hours} /> : null}
                 {selected.toilet.fee != null ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Fee</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>
-                        {selected.toilet.fee === 0 ? 'Free' : `${selected.toilet.fee} €`}
-                      </Text>
-                    </View>
-                  </View>
+                  <DetailRow label="Fee" value={selected.toilet.fee === 0 ? 'Free' : `${selected.toilet.fee} €`} />
                 ) : null}
-                {selected.toilet.payment ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Payment</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.toilet.payment}</Text>
-                    </View>
-                  </View>
-                ) : null}
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Accessibility</Text>
-                  <View style={styles.detailValueContainer}>
-                    <Text style={styles.detailValue}>
-                      {selected.toilet.barrierFree === true
-                        ? 'Barrier-free'
-                        : selected.toilet.barrierFree === false
-                        ? 'Not barrier-free'
-                        : 'Unknown'}
-                      {selected.toilet.barrierReduced != null
-                        ? selected.toilet.barrierReduced
-                          ? ' · Accessible (reduced)'
-                          : ' · Not barrier-reduced'
-                        : ''}
-                    </Text>
-                  </View>
-                </View>
+                {selected.toilet.payment ? <DetailRow label="Payment" value={selected.toilet.payment} /> : null}
+                <DetailRow
+                  label="Accessibility"
+                  value={
+                    (selected.toilet.barrierFree === true ? 'Barrier-free' :
+                      selected.toilet.barrierFree === false ? 'Not barrier-free' : 'Unknown') +
+                    (selected.toilet.barrierReduced != null
+                      ? selected.toilet.barrierReduced ? ' · Accessible (reduced)' : ' · Not barrier-reduced'
+                      : '')
+                  }
+                />
                 {selected.toilet.hasChangingTable != null ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Baby-changing table</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.toilet.hasChangingTable ? 'Yes' : 'No'}</Text>
-                    </View>
-                  </View>
+                  <DetailRow label="Baby-changing table" value={selected.toilet.hasChangingTable ? 'Yes' : 'No'} />
                 ) : null}
-                {selected.toilet.operator ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Operator</Text>
-                    <View style={styles.detailValueContainer}>
-                      <Text style={styles.detailValue}>{selected.toilet.operator}</Text>
-                    </View>
-                  </View>
-                ) : null}
+                {selected.toilet.operator ? <DetailRow label="Operator" value={selected.toilet.operator} /> : null}
               </View>
             ) : null}
 
+            {/* Bathing spot details */}
+            {selected.type === 'bathing' && selected.bathing ? (
+              <View style={styles.detailsCard}>
+                {selected.bathing.waterQuality ? <DetailRow label="Water quality" value={selected.bathing.waterQuality} /> : null}
+                {selected.bathing.cyanobacteria ? <DetailRow label="Cyanobacteria" value={selected.bathing.cyanobacteria} /> : null}
+                {selected.bathing.season ? <DetailRow label="Season" value={selected.bathing.season} /> : null}
+                {selected.bathing.district ? <DetailRow label="District" value={selected.bathing.district} /> : null}
+              </View>
+            ) : null}
+
+            {/* Cool space details */}
+            {selected.type === 'coolSpace' && selected.coolSpace ? (
+              <View style={styles.detailsCard}>
+                {selected.coolSpace.spaceType ? <DetailRow label="Type" value={selected.coolSpace.spaceType} /> : null}
+                {selected.coolSpace.hours ? <DetailRow label="Hours" value={selected.coolSpace.hours} /> : null}
+                {selected.coolSpace.wheelchairAccessible != null ? (
+                  <DetailRow label="Accessible" value={selected.coolSpace.wheelchairAccessible ? 'Yes' : 'No'} />
+                ) : null}
+                {selected.coolSpace.district ? <DetailRow label="District" value={selected.coolSpace.district} /> : null}
+              </View>
+            ) : null}
+
+            {/* BBQ area details */}
+            {selected.type === 'bbq' && selected.bbq ? (
+              <View style={styles.detailsCard}>
+                {selected.bbq.fee ? <DetailRow label="Fee" value={selected.bbq.fee} /> : null}
+                {selected.bbq.rules ? <DetailRow label="Rules" value={selected.bbq.rules} /> : null}
+                {selected.bbq.bookingUrl ? (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Booking</Text>
+                    <View style={styles.detailValueContainer}>
+                      <Pressable
+                        onPress={() => handleOpenUrl(selected.bbq!.bookingUrl!)}
+                        accessibilityRole="link"
+                        style={styles.linkRow}
+                      >
+                        <Text style={[styles.detailValue, styles.link]} numberOfLines={1}>Book online</Text>
+                        <Feather name="external-link" size={14} color="#1d4ed8" />
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
+                {selected.bbq.district ? <DetailRow label="District" value={selected.bbq.district} /> : null}
+              </View>
+            ) : null}
+
+            {/* Bike repair details */}
+            {selected.type === 'bikeRepair' && selected.bikeRepair ? (
+              <View style={styles.detailsCard}>
+                {selected.bikeRepair.stationType ? <DetailRow label="Type" value={selected.bikeRepair.stationType} /> : null}
+                {selected.bikeRepair.district ? <DetailRow label="District" value={selected.bikeRepair.district} /> : null}
+              </View>
+            ) : null}
+
+            {/* EV charging details */}
+            {selected.type === 'evCharging' && selected.evCharging ? (
+              <View style={styles.detailsCard}>
+                {selected.evCharging.connectorTypes ? <DetailRow label="Connectors" value={selected.evCharging.connectorTypes} /> : null}
+                {selected.evCharging.powerKw != null ? <DetailRow label="Power" value={`${selected.evCharging.powerKw} kW`} /> : null}
+                {selected.evCharging.operator ? <DetailRow label="Operator" value={selected.evCharging.operator} /> : null}
+                {selected.evCharging.isPublic != null ? (
+                  <DetailRow label="Access" value={selected.evCharging.isPublic ? 'Public' : 'Private'} />
+                ) : null}
+                {selected.evCharging.address ? <DetailRow label="Address" value={selected.evCharging.address} /> : null}
+              </View>
+            ) : null}
+
+            {/* Playground details */}
+            {selected.type === 'playground' && selected.playground ? (
+              <View style={styles.detailsCard}>
+                {selected.playground.area != null ? <DetailRow label="Area" value={`${selected.playground.area} m²`} /> : null}
+                {selected.playground.equipment ? <DetailRow label="Equipment" value={selected.playground.equipment} /> : null}
+                {selected.playground.district ? <DetailRow label="District" value={selected.playground.district} /> : null}
+              </View>
+            ) : null}
+
+            {/* Community status */}
             <View style={styles.statusCard}>
               <View style={styles.statusHeader}>
                 <Text style={styles.statusLabel}>Community Status</Text>
@@ -343,33 +323,21 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                     <ActivityIndicator size="small" color="#616161" />
                   </View>
                 ) : communityStatus.status ? (
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: getStatusBadgeColor(communityStatus.status).backgroundColor }
-                  ]}>
-                    <Text style={[
-                      styles.statusBadgeText,
-                      { color: getStatusBadgeColor(communityStatus.status).textColor }
-                    ]}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusBadgeColor(communityStatus.status).backgroundColor }]}>
+                    <Text style={[styles.statusBadgeText, { color: getStatusBadgeColor(communityStatus.status).textColor }]}>
                       {getStatusBadgeText(communityStatus.status)}
                     </Text>
                   </View>
                 ) : (
                   <View style={[styles.statusBadge, { backgroundColor: '#F5F5F5' }]}>
-                    <Text style={[styles.statusBadgeText, { color: '#616161' }]}>
-                      No reports yet
-                    </Text>
+                    <Text style={[styles.statusBadgeText, { color: '#616161' }]}>No reports yet</Text>
                   </View>
                 )}
               </View>
               {!hasReports && !communityStatus.loading ? (
-                <Text style={styles.statusHint}>
-                  Help others - report current status
-                </Text>
+                <Text style={styles.statusHint}>Help others - report current status</Text>
               ) : !isOnline ? (
-                <Text style={styles.statusHint}>
-                  Voting is available only while online. You can still browse cached amenity details offline.
-                </Text>
+                <Text style={styles.statusHint}>Voting is available only while online.</Text>
               ) : communityStatus.loading ? (
                 <Text style={styles.statusHint}> </Text>
               ) : null}
@@ -383,6 +351,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   accessibilityRole="button"
                   disabled={votingDisabled}
                   onPress={() => {
+                    lightImpact();
                     if (selected) {
                       communityStatus.submitReport('working', {
                         lat: selected.coordinates[1],
@@ -392,25 +361,21 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   }}
                 >
                   <View style={styles.voteButtonContent}>
-                    <Text
-                      style={[
-                        styles.voteText,
-                        !hasReports && myVote !== 'working' && styles.voteTextMuted,
-                        myVote === 'working' && styles.voteTextSelected,
-                      ]}
-                    >
-                      👍 Working
+                    <Text style={[
+                      styles.voteText,
+                      !hasReports && myVote !== 'working' && styles.voteTextMuted,
+                      myVote === 'working' && styles.voteTextSelected,
+                    ]}>
+                      {voteLabels.positive}
                     </Text>
                     {communityStatus.submitting ? (
                       <ActivityIndicator size="small" color="#047857" style={{ marginLeft: 4 }} />
                     ) : (
-                      <Text
-                        style={[
-                          styles.voteCount,
-                          !hasReports && myVote !== 'working' && styles.voteCountMuted,
-                          myVote === 'working' && styles.voteCountSelected,
-                        ]}
-                      >
+                      <Text style={[
+                        styles.voteCount,
+                        !hasReports && myVote !== 'working' && styles.voteCountMuted,
+                        myVote === 'working' && styles.voteCountSelected,
+                      ]}>
                         ({workingCount})
                       </Text>
                     )}
@@ -425,6 +390,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   accessibilityRole="button"
                   disabled={votingDisabled}
                   onPress={() => {
+                    lightImpact();
                     if (selected) {
                       communityStatus.submitReport('not_working', {
                         lat: selected.coordinates[1],
@@ -434,25 +400,21 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   }}
                 >
                   <View style={styles.voteButtonContent}>
-                    <Text
-                      style={[
-                        styles.voteText,
-                        !hasReports && myVote !== 'not_working' && styles.voteTextMuted,
-                        myVote === 'not_working' && styles.voteTextSelected,
-                      ]}
-                    >
-                      👎 Not Working
+                    <Text style={[
+                      styles.voteText,
+                      !hasReports && myVote !== 'not_working' && styles.voteTextMuted,
+                      myVote === 'not_working' && styles.voteTextSelected,
+                    ]}>
+                      {voteLabels.negative}
                     </Text>
                     {communityStatus.submitting ? (
                       <ActivityIndicator size="small" color="#b91c1c" style={{ marginLeft: 4 }} />
                     ) : (
-                      <Text
-                        style={[
-                          styles.voteCount,
-                          !hasReports && myVote !== 'not_working' && styles.voteCountMuted,
-                          myVote === 'not_working' && styles.voteCountSelected,
-                        ]}
-                      >
+                      <Text style={[
+                        styles.voteCount,
+                        !hasReports && myVote !== 'not_working' && styles.voteCountMuted,
+                        myVote === 'not_working' && styles.voteCountSelected,
+                      ]}>
                         ({notWorkingCount})
                       </Text>
                     )}
@@ -461,6 +423,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
               </View>
             </View>
 
+            {/* Actions: Navigate, Share, Copy Link */}
             <View style={styles.actionsRow}>
               <Pressable
                 style={[styles.actionButton, styles.primaryAction]}
@@ -476,11 +439,20 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                 style={[styles.actionButton, styles.secondaryAction]}
                 accessibilityRole="button"
                 onPress={handleShare}
-                onLongPress={handleCopy}
               >
                 <View style={styles.actionContent}>
-                  <Feather name="share-2" size={18} color="#10b981" />
+                  <Feather name="share-2" size={18} color="#334155" />
                   <Text style={[styles.actionText, styles.secondaryActionText]}>Share</Text>
+                </View>
+              </Pressable>
+              <Pressable
+                style={[styles.actionButton, styles.secondaryAction]}
+                accessibilityRole="button"
+                onPress={handleCopy}
+              >
+                <View style={styles.actionContent}>
+                  <Feather name="copy" size={18} color="#334155" />
+                  <Text style={[styles.actionText, styles.secondaryActionText]}>Copy</Text>
                 </View>
               </Pressable>
             </View>
@@ -493,77 +465,57 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
   );
 }
 
+/** Simple detail row helper */
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <View style={styles.detailValueContainer}>
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  sheetContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  sheetContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   sheetHandle: { backgroundColor: '#E0E0E0' },
-  headerSection: { marginBottom: 8, gap: 4 },
+  headerSection: { marginBottom: 8, gap: 6 },
   headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
   },
-  typeIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeIcon: {
-    width: 13,
-    height: 13,
-    resizeMode: 'contain',
-  },
-  typePillText: { color: '#0f172a', fontWeight: '600', fontSize: 11 },
-  title: { fontSize: 18, fontWeight: '700', color: '#0f172a', lineHeight: 24 },
+  typePillText: { fontWeight: '700', fontSize: 10, color: '#ffffff' },
+  title: { fontSize: 20, fontWeight: '800', color: '#0f172a', lineHeight: 26 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   locationText: { color: '#64748b', fontSize: 12, flexShrink: 1 },
-  distanceRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  distanceText: { color: '#2563EB', fontWeight: '600', fontSize: 12 },
+  distanceRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start',
+  },
+  distanceText: { color: '#1a56db', fontWeight: '600', fontSize: 12 },
   favButton: {
-    height: 32,
-    width: 32,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e2e8f0',
+    height: 32, width: 32, borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: '#e2e8f0',
     backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#0f172a', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
-  favButtonActive: {
-    backgroundColor: '#FFF7E6',
-    borderColor: '#f59e0b',
-  },
+  favButtonActive: { backgroundColor: '#FFF7E6', borderColor: '#f59e0b' },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#f1f5f9', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4,
   },
-  chipIcon: { fontSize: 11 },
   chipText: { color: '#334155', fontWeight: '500', fontSize: 11 },
   detailsCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e2e8f0',
-    marginBottom: 8,
-    gap: 2,
+    backgroundColor: '#f8fafc', borderRadius: 12, padding: 12,
+    marginBottom: 8, gap: 2,
   },
   detailRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4, gap: 10 },
   detailLabel: { width: 90, color: '#475569', fontWeight: '600', fontSize: 12 },
@@ -571,9 +523,7 @@ const styles = StyleSheet.create({
   detailValue: { color: '#111827', fontSize: 12, lineHeight: 16 },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   link: { color: '#1d4ed8', textDecorationLine: 'underline' },
-  inlineBadge: { backgroundColor: '#e0f2fe', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
-  inlineBadgeText: { color: '#0369a1', fontSize: 10, fontWeight: '600' },
-  statusCard: { backgroundColor: '#F8F9FA', borderRadius: 10, padding: 10, marginBottom: 8, gap: 6 },
+  statusCard: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 10, marginBottom: 8, gap: 6 },
   statusHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusLabel: { color: '#6b7280', fontSize: 12, fontWeight: '500' },
   statusBadge: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
@@ -581,70 +531,31 @@ const styles = StyleSheet.create({
   statusHint: { color: '#94a3b8', fontSize: 11 },
   voteRow: { flexDirection: 'row', gap: 8 },
   voteButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    flex: 1, borderRadius: 14, paddingVertical: 12,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#e2e8f0',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1,
   },
-  voteButtonMuted: {
-    backgroundColor: '#fafafa',
-    borderColor: '#e5e7eb',
-  },
-  voteButtonSelected: {
-    borderWidth: 2,
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+  voteButtonMuted: { backgroundColor: '#fafafa', borderColor: '#e2e8f0' },
+  voteButtonSelected: { borderWidth: 2, borderColor: '#1a56db', backgroundColor: '#1a56db', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   voteButtonContent: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  voteYes: {
-    backgroundColor: '#ffffff',
-    borderColor: '#86efac',
-  },
-  voteNo: {
-    backgroundColor: '#ffffff',
-    borderColor: '#fca5a5',
-  },
-  voteText: { fontWeight: '700', color: '#1e293b', fontSize: 13 },
+  voteYes: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
+  voteNo: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
+  voteText: { fontWeight: '800', color: '#1e293b', fontSize: 12 },
   voteTextMuted: { color: '#94a3b8', fontWeight: '600' },
-  voteTextSelected: { color: '#2563EB' },
+  voteTextSelected: { color: '#ffffff' },
   voteCount: { fontSize: 11, color: '#64748b', marginLeft: 4, fontWeight: '600' },
   voteCountMuted: { color: '#cbd5e1' },
-  voteCountSelected: { color: '#2563EB', fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', gap: 10 },
+  voteCountSelected: { color: '#ffffff', fontWeight: '700' },
+  actionsRow: { flexDirection: 'row', gap: 8 },
   actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    flex: 1, borderRadius: 14, paddingVertical: 14,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
   },
-  primaryAction: {
-    backgroundColor: '#2563EB',
-  },
-  secondaryAction: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#10b981',
-    shadowOpacity: 0.08,
-  },
+  primaryAction: { backgroundColor: '#1a56db' },
+  secondaryAction: { backgroundColor: '#f1f5f9', shadowOpacity: 0.05 },
   actionContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: '#ffffff', fontWeight: '700', fontSize: 15 },
-  secondaryActionText: { color: '#10b981', fontWeight: '700' },
+  actionText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
+  secondaryActionText: { color: '#334155', fontWeight: '700' },
 });

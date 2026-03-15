@@ -1,32 +1,45 @@
 import { FeatureProps } from '../../../types/api';
 
+/**
+ * Haversine distance between two [lng, lat] points, in meters.
+ */
+export function haversineDistance(
+  from: [number, number],
+  to: [number, number]
+): number {
+  const [lng1, lat1] = from;
+  const [lng2, lat2] = to;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export function formatDistance(meters: number): string {
+  if (meters < 950) return `${Math.round(meters)} m`;
+  const km = meters / 1000;
+  const fixed = km >= 10 ? km.toFixed(0) : km.toFixed(1);
+  return `${fixed} km`;
+}
+
+export function walkingEta(meters: number): number {
+  return Math.max(1, Math.round(meters / 75));
+}
+
 // Haversine distance and simple walking ETA line builder
 export function buildDistanceLine(
   userLocation: [number, number] | null,
   selected: FeatureProps | null
 ): string {
   if (!userLocation || !selected) return '';
-  const [userLng, userLat] = userLocation;
-  const [destLng, destLat] = selected.coordinates;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371000; // meters
-  const dLat = toRad(destLat - userLat);
-  const dLng = toRad(destLng - userLng);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(userLat)) * Math.cos(toRad(destLat)) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const meters = R * c;
-  const formatDistance = (m: number) => {
-    if (m < 950) return `${Math.round(m)} m`;
-    const km = m / 1000;
-    const fixed = km >= 10 ? km.toFixed(0) : km.toFixed(1);
-    return `${fixed} km`;
-  };
-  // Assume ~4.5 km/h walking speed → 75 m/min
-  const minutes = Math.max(1, Math.round(meters / 75));
-  return `📍 ${formatDistance(meters)} · ${minutes} min walk`;
+  const meters = haversineDistance(userLocation, selected.coordinates);
+  return `${formatDistance(meters)} · ${walkingEta(meters)} min walk`;
 }
 
 // Clean "Info" text by stripping any embedded URL and trailing "Link:" label

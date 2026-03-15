@@ -6,9 +6,6 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 // Public runtime token (pk.*) used by Mapbox SDK at runtime
 const MAPBOX_PUBLIC_TOKEN =
   'pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw';
-// Secret downloads token (sk.*) required by native SDK downloads during prebuild
-const MAPBOX_DOWNLOADS_TOKEN = process.env.MAPBOX_DOWNLOADS_TOKEN;
-
 // Supabase configuration (provided via env in dev/build)
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -21,9 +18,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  // Mapbox (@rnmapbox/maps) does not yet support the React Native New Architecture (Fabric/JSI),
-  // so keep it disabled to avoid Android ViewTagResolver crashes when layers mount.
-  newArchEnabled: false,
   scheme: 'berlinpublic',
   description: 'Find public fountains, restrooms, and essential amenities across Berlin. Works offline with community-driven updates.',
   primaryColor: '#3B82F6',
@@ -64,12 +58,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         locationWhenInUsePermission: 'Show your location and find nearby public amenities.',
       },
     ],
-    'react-native-edge-to-edge',
-    [
+[
       '@rnmapbox/maps',
       {
         RNMapboxMapsImpl: 'mapbox',
-        RNMapboxMapsDownloadToken: MAPBOX_DOWNLOADS_TOKEN,
       },
     ],
   ],

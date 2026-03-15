@@ -2,48 +2,56 @@ import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
+import { Feather } from '@expo/vector-icons';
 import { FeatureProps } from '../../types/api';
 import { openDirections } from './map/navigationIntents';
-import { ToggleBar } from './map/ToggleBar';
+import { CategoryBar } from './map/CategoryBar';
 import { ChoiceBar } from './map/ChoiceBar';
 import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
 import { MapHint } from './map/MapHint';
-import { OfflineBanner } from './map/OfflineBanner';
-import { OutOfBoundsBanner } from './map/OutOfBoundsBanner';
+import { StatusBanner } from './map/StatusBanner';
+import { SearchBar } from './map/SearchBar';
+import { ListViewItem } from './map/ListViewItem';
 import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
 import { useCachedFountainsData } from './map/useCachedFountainsData';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { MapScaleBar } from './map/MapScaleBar';
 import { isInBerlin } from '../../utils/location';
+import { CATEGORIES, CategoryKey, CATEGORY_LIST } from '../../constants/categories';
+import { useTheme } from '../../hooks/useTheme';
+import { lightImpact } from '../../utils/haptics';
+import { haversineDistance, formatDistance, walkingEta } from './map/utils';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
-// Simple dataset flags so we can toggle sources independently.
-// Future-friendly: add `toiletsPublic` when we wire the toilets feed.
-const DATASETS = {
-  fountainsDrinking: true,
-  fountainsDecorative: false,
-  toiletsPublic: true, 
-} as const;
-
-Mapbox.setAccessToken((Constants.expoConfig?.extra as any)?.mapboxPublicToken);
-
-// Suppress Mapbox telemetry to reduce noise
-Mapbox.setTelemetryEnabled(false);
 
 export function MapScreen() {
+  const { isDark, colors } = useTheme();
+  const [viewMode, setViewMode] = React.useState<'map' | 'list'>('map');
+
+  // Defer Mapbox init to component mount so Fabric native views are ready
+  const [mapboxReady, setMapboxReady] = React.useState(false);
+  const mapboxInitRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (mapboxInitRef.current) return;
+    mapboxInitRef.current = true;
+    Mapbox.setAccessToken((Constants.expoConfig?.extra as any)?.mapboxPublicToken);
+    Mapbox.setTelemetryEnabled(false);
+    setMapboxReady(true);
+  }, []);
+
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
   const [hasLocationPermission, setHasLocationPermission] = React.useState(false);
   const [isOutOfBounds, setIsOutOfBounds] = React.useState(false);
   const [selected, setSelected] = React.useState<FeatureProps | null>(null);
   const [candidates, setCandidates] = React.useState<FeatureProps[]>([]);
-  const [activeDataset, setActiveDataset] = React.useState<'fountains' | 'toilets'>('fountains');
-  const [useDecorWms, setUseDecorWms] = React.useState(false);
   // Render map layers only after the style is fully loaded to avoid Android dev-reload native view tag errors
   const [styleLoaded, setStyleLoaded] = React.useState(false);
   const [mapLoadFailed, setMapLoadFailed] = React.useState(false);
@@ -59,41 +67,24 @@ export function MapScreen() {
   const { pendingFeature, clearPendingFeature } = useMapNavigation();
   const [showMapHint, setShowMapHint] = React.useState(false);
 
-  // Use caching hook for data management
-  const { features, loading, error, cacheAge, isStale, hasCachedData, refresh } = useCachedFountainsData();
+  // Use caching hook for data management (now category-aware)
+  const {
+    features, loading, error, cacheAge, isStale, hasCachedData,
+    activeCategories, toggleCategory, refresh,
+  } = useCachedFountainsData();
   const isOnline = useNetworkStatus();
 
   // Compute distance and simple walking ETA from user location to selected feature
   const distanceInfo = React.useMemo(() => {
     if (!userLocation || !selected) return null;
-    const [userLng, userLat] = userLocation;
-    const [destLng, destLat] = selected.coordinates;
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const R = 6371000; // meters
-    const dLat = toRad(destLat - userLat);
-    const dLng = toRad(destLng - userLng);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(userLat)) * Math.cos(toRad(destLat)) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const meters = R * c;
-    const formatDistance = (m: number) => {
-      if (m < 950) return `${Math.round(m)} m`;
-      const km = m / 1000;
-      const fixed = km >= 10 ? km.toFixed(0) : km.toFixed(1);
-      return `${fixed} km`;
-    };
-    // Assume ~4.5 km/h walking speed → 75 m/min
-    const minutes = Math.max(1, Math.round(meters / 75));
-    return { distanceText: formatDistance(meters), etaMinutes: minutes };
+    const meters = haversineDistance(userLocation, selected.coordinates);
+    return { distanceText: formatDistance(meters), etaMinutes: walkingEta(meters) };
   }, [userLocation, selected]);
 
   React.useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        // Request location once on first launch
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           setHasLocationPermission(true);
@@ -104,10 +95,7 @@ export function MapScreen() {
         }
       } catch {}
     })();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   // Check if user is outside Berlin boundaries
@@ -126,9 +114,7 @@ export function MapScreen() {
         if (!hasSeenHint && styleLoaded && features.length > 0) {
           setShowMapHint(true);
         }
-      } catch {
-        // Ignore storage errors
-      }
+      } catch {}
     })();
   }, [styleLoaded, features]);
 
@@ -136,14 +122,10 @@ export function MapScreen() {
     setShowMapHint(false);
     try {
       await AsyncStorage.setItem('hasSeenMapHint', 'true');
-    } catch {
-      // Ignore storage errors
-    }
+    } catch {}
   }, []);
 
   // Fly to user location once it becomes available on initial load
-  // Combined approach: useEffect for reactivity + useFocusEffect for navigation events
-  // Skip if we have a pendingFeature or have already handled one (navigating from Favorites)
   const performInitialZoom = React.useCallback(() => {
     if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current && !pendingFeature && !hasHandledPendingFeature.current) {
       const camera: any = cameraRef.current;
@@ -166,34 +148,17 @@ export function MapScreen() {
     }
   }, [userLocation, styleLoaded, pendingFeature]);
 
-  // Trigger zoom when location/style become available
   React.useEffect(() => {
     performInitialZoom();
   }, [performInitialZoom]);
 
-  // Also trigger when screen comes into focus (e.g., from onboarding)
-  // Reset flag and wait for navigation animation to complete before zooming
   useFocusEffect(
     React.useCallback(() => {
-      // Reset the flag on focus to allow retry after navigation from onboarding
-      // This handles the case where Map mounted in background with incomplete conditions
       if (hasInitiallyCentered.current) {
         hasInitiallyCentered.current = false;
       }
-
-      // Wait for navigation animation to complete (~300-500ms) before attempting zoom
-      // This ensures the map is fully visible and interactive
-      const timer1 = setTimeout(performInitialZoom, 600);
-      const timer2 = setTimeout(performInitialZoom, 1000);
-      const timer3 = setTimeout(performInitialZoom, 1500);
-      const timer4 = setTimeout(performInitialZoom, 2000);
-
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-        clearTimeout(timer4);
-      };
+      const timer = setTimeout(performInitialZoom, 800);
+      return () => { clearTimeout(timer); };
     }, [performInitialZoom])
   );
 
@@ -208,34 +173,22 @@ export function MapScreen() {
   // Handle navigation from Favorites to Map: fly to feature and select it
   React.useEffect(() => {
     if (pendingFeature && styleLoaded && cameraRef.current && features.length > 0) {
-      // Mark that we've handled a pending feature (prevents initial zoom from firing)
       hasHandledPendingFeature.current = true;
       hasInitiallyCentered.current = true;
 
-      // Switch to correct dataset if needed
-      const featureType = pendingFeature.type;
-      const needsDatasetSwitch =
-        (featureType === 'toilet' && activeDataset !== 'toilets') ||
-        ((featureType === 'drinking' || featureType === 'decorative') && activeDataset !== 'fountains');
-
-      if (needsDatasetSwitch) {
-        if (featureType === 'toilet') {
-          setActiveDataset('toilets');
-        } else {
-          setActiveDataset('fountains');
-        }
-        // Wait for next tick to let dataset switch complete, then select
+      // Ensure the category for this feature is active
+      const featureType = pendingFeature.type as CategoryKey | undefined;
+      if (featureType && !activeCategories.has(featureType)) {
+        toggleCategory(featureType);
         setTimeout(() => {
           const found = features.find((f) => f.id === pendingFeature.id);
           setSelected(found || pendingFeature);
         }, 50);
       } else {
-        // No dataset switch needed, select immediately
         const found = features.find((f) => f.id === pendingFeature.id);
         setSelected(found || pendingFeature);
       }
 
-      // Fly camera to feature location
       const camera: any = cameraRef.current;
       if (camera?.setCamera) {
         camera.setCamera({
@@ -246,21 +199,14 @@ export function MapScreen() {
         });
       }
 
-      // Clear pending feature after handling
       clearPendingFeature();
     }
-  }, [pendingFeature, styleLoaded, features, activeDataset, clearPendingFeature]);
-
-  const filteredFeatures = React.useMemo(() => {
-    return features.filter((f) =>
-      activeDataset === 'fountains' ? f.type === 'drinking' || f.type === 'decorative' : f.type === 'toilet'
-    );
-  }, [features, activeDataset]);
+  }, [pendingFeature, styleLoaded, features, activeCategories, clearPendingFeature, toggleCategory]);
 
   const featureCollection = React.useMemo(() => {
     return {
       type: 'FeatureCollection',
-      features: filteredFeatures.map((f) => ({
+      features: features.map((f) => ({
         type: 'Feature',
         id: f.id,
         properties: {
@@ -275,17 +221,9 @@ export function MapScreen() {
         },
       })),
     } as const;
-  }, [filteredFeatures]);
+  }, [features]);
 
-  // Clear selection when switching dataset so hidden selections don't linger
-  React.useEffect(() => {
-    setSelected(null);
-    setCandidates([]);
-  }, [activeDataset]);
-
-  // Selected feature id (string or empty string for no selection).
   const selectedId = selected?.id ?? '';
-  // Helper to scale icon size when the feature is selected (data-driven styling).
   const makeSelectedIconSize = React.useCallback(
     (baseSize: number) =>
       (['case', ['==', ['get', 'id'], selectedId], baseSize * 1.25, baseSize] as any),
@@ -302,22 +240,14 @@ export function MapScreen() {
     }
   }, [selected]);
 
-  // Recenter the camera to the user's current location.
-  // - Ensures permission is granted
-  // - Fetches a fresh location if we don't have one yet
-  // - Uses setCamera when available (more reliable on Android), with flyTo as a fallback
   const handleRecenter = React.useCallback(async () => {
     try {
-      // Wait until map style is loaded to avoid native view tag errors
       if (!styleLoaded) return;
-
-      // Request permission if we don't have it yet
       if (!hasLocationPermission) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
         setHasLocationPermission(true);
       }
-
       let target: [number, number] | null = userLocation;
       if (!target) {
         const loc = await Location.getCurrentPositionAsync({});
@@ -325,7 +255,6 @@ export function MapScreen() {
         setUserLocation(target);
       }
       if (!target) return;
-
       const camera: any = cameraRef.current as any;
       if (camera?.setCamera) {
         camera.setCamera({
@@ -342,11 +271,22 @@ export function MapScreen() {
     }
   }, [styleLoaded, hasLocationPermission, userLocation, cameraZoom]);
 
-  // Extract a safe [lng, lat] tuple from a pressed feature
+  // Search result handler: fly camera to geocoded coords
+  const handleSearchResult = React.useCallback((coords: [number, number]) => {
+    const camera: any = cameraRef.current;
+    if (camera?.setCamera) {
+      camera.setCamera({
+        centerCoordinate: coords,
+        zoomLevel: 15,
+        animationMode: 'flyTo',
+        animationDuration: 800,
+      });
+    }
+  }, []);
+
   const getFeatureCoordinate = React.useCallback((f: any): [number, number] | null => {
     let coords: any = f?.geometry?.coordinates;
     if (Array.isArray(coords)) {
-      // Handle MultiPoint-like [[lng,lat], ...]
       if (Array.isArray(coords[0])) coords = coords[0];
       if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
         return [coords[0], coords[1]];
@@ -355,14 +295,23 @@ export function MapScreen() {
     return null;
   }, []);
 
-  // Build ShapeSource children as an array (Mapbox's types prefer arrays of elements, not nulls)
+  // Build Mapbox marker images record from active categories
+  const markerImages = React.useMemo(() => {
+    const images: Record<string, any> = {};
+    for (const cat of CATEGORY_LIST) {
+      images[cat.markerImageKey] = cat.markerIcon;
+    }
+    return images;
+  }, []);
+
+  // Build SymbolLayers for each active category
   const shapeLayers = React.useMemo(() => {
-    const clusterPalette =
-      activeDataset === 'toilets'
-        ? { fill: '#1e3a8a', stroke: '#c7d2fe', glow: 'rgba(30,58,138,0.35)' }
-        : { fill: '#1d8bf1', stroke: '#bfdbfe', glow: 'rgba(29,139,241,0.28)' };
+    // Cluster palette based on dominant category
+    const clusterPalette = { fill: '#1d8bf1', stroke: '#bfdbfe', glow: 'rgba(29,139,241,0.28)' };
 
     const layers: React.ReactElement[] = [];
+
+    // Selection halo
     layers.push(
       <Mapbox.CircleLayer
         key="selectedHalo"
@@ -377,7 +326,8 @@ export function MapScreen() {
         }}
       />
     );
-    // Cluster glow effect (outer ring)
+
+    // Cluster layers
     layers.push(
       <Mapbox.CircleLayer
         key="clusterGlow"
@@ -386,20 +336,11 @@ export function MapScreen() {
         style={{
           circleColor: clusterPalette.glow,
           circleOpacity: 1,
-          circleRadius: [
-            'step',
-            ['get', 'point_count'],
-            22,  // +6 from base
-            20,
-            26,  // +6 from base
-            50,
-            32,  // +6 from base
-          ] as any,
+          circleRadius: ['step', ['get', 'point_count'], 22, 20, 26, 50, 32] as any,
           circleBlur: 0.5,
         }}
       />
     );
-    // Cluster circles (main)
     layers.push(
       <Mapbox.CircleLayer
         key="clusteredPoints"
@@ -410,19 +351,10 @@ export function MapScreen() {
           circleOpacity: 0.92,
           circleStrokeWidth: 2,
           circleStrokeColor: clusterPalette.stroke,
-          circleRadius: [
-            'step',
-            ['get', 'point_count'],
-            16,
-            20,
-            20,
-            50,
-            26,
-          ] as any,
+          circleRadius: ['step', ['get', 'point_count'], 16, 20, 20, 50, 26] as any,
         }}
       />
     );
-    // Cluster count labels
     layers.push(
       <Mapbox.SymbolLayer
         key="clusterCount"
@@ -435,29 +367,18 @@ export function MapScreen() {
         }}
       />
     );
-    layers.push(
-      <Mapbox.SymbolLayer
-        key="fountainSymbolsDrinking"
-        id="fountainSymbolsDrinking"
-        filter={["==", ["get", "type"], "drinking"] as any}
-        style={{
-          iconImage: 'fountainDrink',
-          iconSize: makeSelectedIconSize(0.2),
-          iconAllowOverlap: true,
-          iconIgnorePlacement: true,
-          iconAnchor: 'bottom',
-        }}
-      />
-    );
-    if (DATASETS.fountainsDecorative) {
+
+    // One SymbolLayer per active category
+    for (const cat of CATEGORY_LIST) {
+      if (!activeCategories.has(cat.key)) continue;
       layers.push(
         <Mapbox.SymbolLayer
-          key="fountainSymbolsDecor"
-          id="fountainSymbolsDecor"
-          filter={["==", ["get", "type"], "decorative"] as any}
+          key={`symbol_${cat.key}`}
+          id={`symbol_${cat.key}`}
+          filter={["==", ["get", "type"], cat.key] as any}
           style={{
-            iconImage: 'fountainDecor',
-            iconSize: makeSelectedIconSize(1),
+            iconImage: cat.markerImageKey,
+            iconSize: makeSelectedIconSize(cat.markerIconSize),
             iconAllowOverlap: true,
             iconIgnorePlacement: true,
             iconAnchor: 'bottom',
@@ -465,30 +386,53 @@ export function MapScreen() {
         />
       );
     }
-    if (DATASETS.toiletsPublic) {
-      layers.push(
-        <Mapbox.SymbolLayer
-          key="toiletsSymbols"
-          id="toiletsSymbols"
-          filter={["==", ["get", "type"], "toilet"] as any}
-          style={{
-            iconImage: 'toilet',
-            iconSize: makeSelectedIconSize(0.18),
-            iconAllowOverlap: true,
-            iconIgnorePlacement: true,
-            iconAnchor: 'bottom',
-          }}
-        />
-      );
-    }
+
     return layers;
-  }, [selectedId, makeSelectedIconSize, activeDataset]);
+  }, [selectedId, makeSelectedIconSize, activeCategories]);
+
+  // Features sorted by distance for list view
+  const sortedFeatures = React.useMemo(() => {
+    if (!userLocation) return features;
+    return [...features].sort((a, b) =>
+      haversineDistance(userLocation, a.coordinates) - haversineDistance(userLocation, b.coordinates)
+    );
+  }, [features, userLocation]);
+
+  const handleToggleView = React.useCallback(() => {
+    lightImpact();
+    setViewMode((v) => (v === 'map' ? 'list' : 'map'));
+  }, []);
+
+  const handleListItemPress = React.useCallback((item: FeatureProps) => {
+    lightImpact();
+    setSelected(item);
+    setViewMode('map');
+    const camera: any = cameraRef.current;
+    if (camera?.setCamera) {
+      camera.setCamera({
+        centerCoordinate: item.coordinates,
+        zoomLevel: 15,
+        animationMode: 'flyTo',
+        animationDuration: 800,
+      });
+    }
+  }, []);
+
+  if (!mapboxReady) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Mapbox.MapView
         style={styles.map}
-        styleURL={Mapbox.StyleURL.Light}
+        styleURL={colors.mapStyle}
         onDidFinishLoadingStyle={() => {
           setStyleLoaded(true);
           setMapLoadFailed(false);
@@ -509,7 +453,6 @@ export function MapScreen() {
           }
         }}
         onPress={(e: any) => {
-          // Deselect fountain when tapping empty map (no features)
           if (!e.features || e.features.length === 0) {
             setSelected(null);
             setCandidates([]);
@@ -521,25 +464,7 @@ export function MapScreen() {
       >
         {styleLoaded ? (
           <>
-            <Mapbox.Images
-              images={{
-                fountainDrink: require('../../../assets/water-drop.png'),
-                fountainDecor: require('../../../assets/decor.png'),
-                toilet: require('../../../assets/toilet.png'),
-              }}
-            />
-            {/* Zierbrunnen WMS fallback overlay (raster). Drawn below vector pins. */}
-            {DATASETS.fountainsDecorative && useDecorWms ? (
-              <Mapbox.RasterSource
-                id="decorWms"
-                tileUrlTemplates={[
-                  'https://gdi.berlin.de/services/wms/zierbrunnen?service=WMS&version=1.3.0&request=GetMap&format=image/png&transparent=true&layers=zierbrunnen&styles=&crs=EPSG:3857&bbox={bbox-epsg-3857}&width=256&height=256',
-                ]}
-                tileSize={256}
-              >
-                <Mapbox.RasterLayer id="decorWmsLayer" style={{ rasterOpacity: 0.8 }} />
-              </Mapbox.RasterSource>
-            ) : null}
+            <Mapbox.Images images={markerImages} />
             <Mapbox.Camera
               ref={cameraRef}
               centerCoordinate={BERLIN_CENTER}
@@ -547,10 +472,8 @@ export function MapScreen() {
               animationMode="flyTo"
               animationDuration={800}
             />
-            {/* User location (only render if permission granted) */}
             {hasLocationPermission ? <Mapbox.UserLocation /> : null}
 
-            {/* Pins via ShapeSource + SymbolLayers filtered by current dataset */}
             <Mapbox.ShapeSource
               id="fountains"
               ref={sourceRef}
@@ -563,7 +486,6 @@ export function MapScreen() {
                 const feat = e.features?.[0];
                 if (!feat) return;
                 const props: any = feat.properties;
-                // If cluster, expand
                 if (props?.cluster) {
                   const coord = getFeatureCoordinate(feat);
                   const nextZoom = Math.min(Math.max(cameraZoom + 2, 13), 17);
@@ -579,11 +501,7 @@ export function MapScreen() {
                   }
                   return;
                 }
-                // Dismiss hint on first marker tap
-                if (showMapHint) {
-                  handleDismissHint();
-                }
-                // If multiple features under tap, show quick chooser
+                if (showMapHint) handleDismissHint();
                 const nonCluster = (e.features || []).filter((f: any) => !f.properties?.cluster);
                 if (nonCluster.length > 1) {
                   const list: FeatureProps[] = [];
@@ -632,9 +550,7 @@ export function MapScreen() {
           <View style={styles.stateActions}>
             <Pressable
               style={[styles.stateButton, styles.stateButtonPrimary]}
-              onPress={() => {
-                refresh().catch(() => {});
-              }}
+              onPress={() => { refresh().catch(() => {}); }}
               accessibilityRole="button"
               accessibilityLabel="Retry loading amenity data"
             >
@@ -656,21 +572,17 @@ export function MapScreen() {
 
       {showMapHint && <MapHint onDismiss={handleDismissHint} />}
 
-      <OfflineBanner
+      <SearchBar onResult={handleSearchResult} />
+
+      <StatusBanner
         isOnline={isOnline}
         cacheAge={cacheAge}
         isStale={isStale}
-        onRefresh={() => {
-          refresh().catch(() => {});
-        }}
-      />
-
-      <OutOfBoundsBanner
         isOutOfBounds={isOutOfBounds}
-        offsetTop={(!isOnline || isStale) ? 132 : 60}
+        onRefresh={() => { refresh().catch(() => {}); }}
       />
 
-      <ToggleBar activeDataset={activeDataset} setActiveDataset={setActiveDataset} />
+      <CategoryBar activeCategories={activeCategories} onToggle={toggleCategory} />
       <MapScaleBar
         zoomLevel={cameraZoom}
         latitude={cameraCenter[1]}
@@ -679,18 +591,46 @@ export function MapScreen() {
       <ChoiceBar
         candidates={candidates}
         onPick={(c) => {
-                  setSelected(c);
-                  setCandidates([]);
-                  (cameraRef.current as any)?.setCamera?.({
-                    centerCoordinate: c.coordinates,
-                    zoomLevel: 15,
-                    animationMode: 'flyTo',
-                    animationDuration: 400,
-                  });
-                }}
+          setSelected(c);
+          setCandidates([]);
+          (cameraRef.current as any)?.setCamera?.({
+            centerCoordinate: c.coordinates,
+            zoomLevel: 15,
+            animationMode: 'flyTo',
+            animationDuration: 400,
+          });
+        }}
       />
 
       <RecenterButton onPress={handleRecenter} />
+
+      {/* Map/List toggle */}
+      <Pressable
+        style={styles.viewToggle}
+        onPress={handleToggleView}
+        accessibilityRole="button"
+        accessibilityLabel={viewMode === 'map' ? 'Switch to list view' : 'Switch to map view'}
+      >
+        <Feather name={viewMode === 'map' ? 'list' : 'map'} size={20} color={colors.text} />
+      </Pressable>
+
+      {/* List view overlay */}
+      {viewMode === 'list' ? (
+        <View style={[styles.listOverlay, { backgroundColor: colors.background }]}>
+          <FlatList
+            data={sortedFeatures}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <ListViewItem
+                item={item}
+                userLocation={userLocation}
+                onPress={handleListItemPress}
+              />
+            )}
+          />
+        </View>
+      ) : null}
 
       <DetailsSheet
         refInstance={bottomSheetRef}
@@ -704,4 +644,10 @@ export function MapScreen() {
   );
 }
 
-// styles moved to ./map/styles
+export function MapScreenWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <MapScreen />
+    </ErrorBoundary>
+  );
+}

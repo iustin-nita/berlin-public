@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { ActiveDataset } from './useFountainsData';
+type ActiveDataset = 'fountains' | 'toilets';
 
 type ToggleBarProps = {
   activeDataset: ActiveDataset;

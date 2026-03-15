@@ -5,7 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as React from 'react';
 import { LogBox, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Toast from 'react-native-toast-message';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
 import { Navigation } from './navigation';
 import { FavoritesProvider } from './favorites/FavoritesContext';
 import { MapNavigationProvider } from './navigation/MapNavigationContext';
@@ -100,22 +101,24 @@ export function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <FavoritesProvider>
-        <MapNavigationProvider>
-          <Navigation
-            ref={navigationRef}
-            theme={theme}
-            linking={{
-              enabled: 'auto',
-              prefixes: [
-                'berlinpublic://',
-              ],
-            }}
-            onReady={() => setNavReady(true)}
-          />
-          <Toast />
-        </MapNavigationProvider>
-      </FavoritesProvider>
+      <SafeAreaProvider>
+        <FavoritesProvider>
+          <MapNavigationProvider>
+            <Navigation
+              ref={navigationRef}
+              theme={theme}
+              linking={{
+                enabled: 'auto',
+                prefixes: [
+                  'berlinpublic://',
+                ],
+              }}
+              onReady={() => setNavReady(true)}
+            />
+            <Toaster />
+          </MapNavigationProvider>
+        </FavoritesProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

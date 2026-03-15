@@ -13,7 +13,7 @@
     },
     "production": {
       "autoIncrement": true,
-      "prebuildCommand": "npx expo prebuild --clean --platform $EAS_BUILD_PLATFORM"
+      "prebuildCommand": "npx expo prebuild --clean"
     }
   },
   "submit": {

@@ -27,6 +27,7 @@ export async function submitReport(
       });
 
     if (error) {
+      if (__DEV__) console.warn(`[Community] Supabase submit error: ${error.code} – ${error.message} (hint: ${error.hint ?? 'none'})`);
       // 23505 unique_violation used in trigger to indicate cooldown
       if (error.code === '23505' || /Cooldown/i.test(error.message)) {
         return { success: false, error: 'You reported this recently. Try again later or change your vote.' };
@@ -56,7 +57,7 @@ export async function getStatus(featureId: string): Promise<StatusSummary> {
       .order('created_at', { ascending: false });
 
     if (error) {
-      if (__DEV__) console.warn('[Community] Supabase get status error', error);
+      if (__DEV__) console.warn(`[Community] Supabase get status error: ${error.code} – ${error.message} (hint: ${error.hint ?? 'none'})`);
       return { totals: { working: 0, notWorking: 0 }, confidence: 0 };
     }
 

@@ -20,7 +20,7 @@ describe('map utils', () => {
   });
 
   it('builds a human readable distance line', () => {
-    expect(buildDistanceLine([13.41, 52.521], feature)).toMatch(/^📍 \d+ m · \d+ min walk$/);
+    expect(buildDistanceLine([13.41, 52.521], feature)).toMatch(/^\d+ m · \d+ min walk$/);
   });
 
   it('sanitizes info text and removes embedded links', () => {

@@ -7,7 +7,7 @@ import {
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { MapScreen } from './screens/Map';
+import { MapScreenWithBoundary as MapScreen } from './screens/Map';
 import { Profile } from './screens/Profile';
 import { Settings } from './screens/Settings';
 import { Favorites } from './screens/Favorites';
@@ -16,20 +16,21 @@ import { Onboarding } from './screens/Onboarding';
 import { MapHeader } from './screens/map/MapHeader';
 
 const HomeTabs = createBottomTabNavigator({
-  screenOptions: {
+  screenOptions: ({ theme }) => ({
     tabBarStyle: {
       paddingTop: 12,
       paddingBottom: 8,
       height: 68,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: '#e2e8f0',
+      borderTopColor: theme.dark ? '#334155' : '#e2e8f0',
+      backgroundColor: theme.dark ? '#0f172a' : '#ffffff',
     },
     tabBarLabelStyle: {
       fontSize: 12,
       fontWeight: '500',
       marginBottom: 4,
     },
-  },
+  }),
   screens: {
     Map: {
       screen: MapScreen,

@@ -40,3 +40,9 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Build artifacts
+build-*.aab
+build-*/
+*.tar.gz
+tile.png

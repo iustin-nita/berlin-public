@@ -1,0 +1,10 @@
+# EAS Build ignore file
+# By default, EAS respects .gitignore
+# This file explicitly includes android/ for local builds
+
+# Still ignore common dev files
+node_modules/
+.expo/
+.git/
+*.log
+.DS_Store
