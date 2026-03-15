@@ -85,15 +85,9 @@ export function useCommunityStatus(featureId: string | null): CommunityStatusHoo
         setStatus(currentStatus);
         setError(result.error || 'Failed to submit report');
         
-        if (result.error?.includes('recently')) {
-          toast('Report Cooldown', {
-            description: result.error,
-          });
-        } else {
-          toast.error('Error', {
-            description: result.error || 'Failed to submit report. Please try again.',
-          });
-        }
+        toast.error('Error', {
+          description: result.error || 'Failed to submit report. Please try again.',
+        });
         return;
       }
 

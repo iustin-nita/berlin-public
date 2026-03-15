@@ -18,20 +18,19 @@ export async function submitReport(
     const deviceId = await getDeviceId();
     const { error } = await supabase
       .from('reports')
-      .insert({
-        feature_id: featureId,
-        status,
-        device_id: deviceId,
-        lat: coordinates?.lat,
-        lng: coordinates?.lng,
-      });
+      .upsert(
+        {
+          feature_id: featureId,
+          status,
+          device_id: deviceId,
+          lat: coordinates?.lat,
+          lng: coordinates?.lng,
+        },
+        { onConflict: 'feature_id,device_id' }
+      );
 
     if (error) {
       if (__DEV__) console.warn(`[Community] Supabase submit error: ${error.code} – ${error.message} (hint: ${error.hint ?? 'none'})`);
-      // 23505 unique_violation used in trigger to indicate cooldown
-      if (error.code === '23505' || /Cooldown/i.test(error.message)) {
-        return { success: false, error: 'You reported this recently. Try again later or change your vote.' };
-      }
       return { success: false, error: 'Failed to save report. Please try again.' };
     }
 

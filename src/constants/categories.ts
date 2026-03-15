@@ -6,14 +6,14 @@ import { ImageSourcePropType } from 'react-native';
  */
 export type CategoryKey =
   | 'drinking'
-  | 'decorative'
   | 'toilet'
-  | 'bathing'
-  | 'coolSpace'
   | 'bbq'
   | 'bikeRepair'
+  | 'playground'
   | 'evCharging'
-  | 'playground';
+  | 'bathing'
+  | 'coolSpace'
+  | 'decorative';
 
 export type CategoryDef = {
   key: CategoryKey;
@@ -61,22 +61,6 @@ export const CATEGORIES: Record<CategoryKey, CategoryDef> = {
     voteLabels: { positive: 'Water flowing', negative: 'Dry / Off' },
     enabled: true,
   },
-  decorative: {
-    key: 'decorative',
-    label: 'Decorative',
-    icon: 'fountain',
-    iconLib: 'MCI',
-    color: '#EA580C',
-    pillBg: '#FFF4EC',
-    pillBorder: '#FFE1CC',
-    wfsUrl: wfsUrl('zierbrunnen', 'zierbrunnen:bez_zierbrunnen'),
-    idPrefix: 'decor_',
-    markerImageKey: 'fountainDecor',
-    markerIcon: require('../../assets/marker_decorative.png'),
-    markerIconSize: 0.22,
-    voteLabels: { positive: 'Running', negative: 'Off' },
-    enabled: true,
-  },
   toilet: {
     key: 'toilet',
     label: 'Toilets',
@@ -89,38 +73,6 @@ export const CATEGORIES: Record<CategoryKey, CategoryDef> = {
     idPrefix: 'toilet_',
     markerImageKey: 'toilet',
     markerIcon: require('../../assets/marker_toilet.png'),
-    markerIconSize: 0.22,
-    voteLabels: { positive: 'Open', negative: 'Closed' },
-    enabled: true,
-  },
-  bathing: {
-    key: 'bathing',
-    label: 'Bathing',
-    icon: 'swim',
-    iconLib: 'MCI',
-    color: '#0D9488',
-    pillBg: '#E6FFFA',
-    pillBorder: '#B2F5EA',
-    wfsUrl: wfsUrl('badegewaesser', 'badegewaesser:aa_badestellen'),
-    idPrefix: 'bath_',
-    markerImageKey: 'bathing',
-    markerIcon: require('../../assets/marker_bathing.png'),
-    markerIconSize: 0.22,
-    voteLabels: { positive: 'Safe to swim', negative: 'Avoid' },
-    enabled: true,
-  },
-  coolSpace: {
-    key: 'coolSpace',
-    label: 'Cool Spaces',
-    icon: 'snowflake',
-    iconLib: 'MCI',
-    color: '#4F46E5',
-    pillBg: '#EEF2FF',
-    pillBorder: '#C7D2FE',
-    wfsUrl: wfsUrl('kuehle_raeume', 'kuehle_raeume:kuehle_raeume'),
-    idPrefix: 'cool_',
-    markerImageKey: 'coolSpace',
-    markerIcon: require('../../assets/marker_cooling.png'),
     markerIconSize: 0.22,
     voteLabels: { positive: 'Open', negative: 'Closed' },
     enabled: true,
@@ -189,13 +141,61 @@ export const CATEGORIES: Record<CategoryKey, CategoryDef> = {
     voteLabels: { positive: 'Available', negative: 'Unavailable' },
     enabled: true,
   },
+   bathing: {
+    key: 'bathing',
+    label: 'Bathing',
+    icon: 'swim',
+    iconLib: 'MCI',
+    color: '#0D9488',
+    pillBg: '#E6FFFA',
+    pillBorder: '#B2F5EA',
+    wfsUrl: wfsUrl('badegewaesser', 'badegewaesser:aa_badestellen'),
+    idPrefix: 'bath_',
+    markerImageKey: 'bathing',
+    markerIcon: require('../../assets/marker_bathing.png'),
+    markerIconSize: 0.22,
+    voteLabels: { positive: 'Safe to swim', negative: 'Avoid' },
+    enabled: true,
+  },
+  coolSpace: {
+    key: 'coolSpace',
+    label: 'Cool Spaces',
+    icon: 'snowflake',
+    iconLib: 'MCI',
+    color: '#4F46E5',
+    pillBg: '#EEF2FF',
+    pillBorder: '#C7D2FE',
+    wfsUrl: wfsUrl('kuehle_raeume', 'kuehle_raeume:kuehle_raeume'),
+    idPrefix: 'cool_',
+    markerImageKey: 'coolSpace',
+    markerIcon: require('../../assets/marker_cooling.png'),
+    markerIconSize: 0.22,
+    voteLabels: { positive: 'Open', negative: 'Closed' },
+    enabled: true,
+  },
+    decorative: {
+    key: 'decorative',
+    label: 'Decorative',
+    icon: 'fountain',
+    iconLib: 'MCI',
+    color: '#EA580C',
+    pillBg: '#FFF4EC',
+    pillBorder: '#FFE1CC',
+    wfsUrl: wfsUrl('zierbrunnen', 'zierbrunnen:bez_zierbrunnen'),
+    idPrefix: 'decor_',
+    markerImageKey: 'fountainDecor',
+    markerIcon: require('../../assets/marker_decorative.png'),
+    markerIconSize: 0.22,
+    voteLabels: { positive: 'Running', negative: 'Off' },
+    enabled: true,
+  },
 };
 
 /** Ordered list of enabled categories for the UI chip bar */
 export const CATEGORY_LIST: CategoryDef[] = Object.values(CATEGORIES).filter((c) => c.enabled);
 
 /** Default active categories (what users see on first launch) */
-export const DEFAULT_ACTIVE_CATEGORIES: CategoryKey[] = ['toilet'];
+export const DEFAULT_ACTIVE_CATEGORIES: CategoryKey[] = ['toilet', 'drinking'];
 
 /** Get category def by feature type key */
 export function getCategoryByKey(key: string): CategoryDef | undefined {
