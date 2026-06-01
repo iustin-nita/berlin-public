@@ -1,10 +1,15 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
+import withAndroidPlayConsoleFixes from './plugins/withAndroidPlayConsoleFixes.js';
+import withFixReanimatedWorklets from './plugins/withFixReanimatedWorklets.js';
 
 // Dynamic Expo config equivalent of app.json
-// Keep simple and static for now; secrets can be moved to env later.
 
-// Public runtime token (pk.*) used by Mapbox SDK at runtime
+// Public runtime token (pk.*) used by Mapbox SDK at runtime.
+// Provided via env (see .env.example); falls back to the project's public
+// token so existing builds keep working. pk.* tokens are public by design
+// (shipped in the app binary) — restrict yours by URL/scope in the Mapbox dashboard.
 const MAPBOX_PUBLIC_TOKEN =
+  process.env.MAPBOX_PUBLIC_TOKEN ??
   'pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw';
 // Supabase configuration (provided via env in dev/build)
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -15,7 +20,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'Berlin Public',
   slug: 'berlin-public',
   version: '1.0.0',
-  orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   scheme: 'berlinpublic',
@@ -32,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#3CA8E8',
     },
     package: 'com.blobstudio.berlinpublic',
     permissions: [
@@ -44,11 +48,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
   },
   plugins: [
+    withAndroidPlayConsoleFixes as any,
+    withFixReanimatedWorklets as any,
     'expo-asset',
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#3CA8E8',
         image: './assets/splash-icon.png',
       },
     ],
@@ -58,7 +64,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         locationWhenInUsePermission: 'Show your location and find nearby public amenities.',
       },
     ],
-[
+    'expo-maps',
+    [
       '@rnmapbox/maps',
       {
         RNMapboxMapsImpl: 'mapbox',
@@ -75,4 +82,3 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
 });
-

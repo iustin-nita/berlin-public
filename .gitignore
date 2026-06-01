@@ -28,6 +28,17 @@ ios/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+firebase-debug.log*
+firestore-debug.log*
+
+# python virtualenv
+.venv/
+venv/
+
+# local tooling / marketing assets (not needed to build the app)
+tools/
+public/
 
 # macOS
 .DS_Store
@@ -36,6 +47,9 @@ yarn-error.*
 # local env files
 .env
 .env*.local
+
+# local editor / agent settings
+.claude/settings.local.json
 
 # typescript
 *.tsbuildinfo

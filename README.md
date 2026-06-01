@@ -13,7 +13,7 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
 
 ## Tech Stack
 
-- React Native with Expo SDK 53
+- React Native with Expo SDK 55 (New Architecture)
 - React Navigation (Native Stack + Bottom Tabs)
 - Mapbox Maps for React Native
 - TypeScript
@@ -27,7 +27,12 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
    npm install
    ```
 
-2. Set up environment variables for Mapbox and Supabase (see `app.config.ts`)
+2. Set up environment variables:
+   ```sh
+   cp .env.example .env
+   ```
+   Fill in your own Mapbox tokens and (optional) Supabase credentials. See
+   [`.env.example`](.env.example) for what each variable is for.
 
 3. Start the development server:
    ```sh
@@ -62,9 +67,15 @@ eas build --platform android --profile production
 eas build --platform ios --profile production
 ```
 
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for
+setup, conventions, and the pull-request process. By participating you agree to
+our [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## License
 
-MIT
+[MIT](LICENSE) © Iustin Nita
 
 ## Contact
 
