@@ -7,6 +7,31 @@ project. It assumes no prior open-source experience. Follow the steps in order.
 > currently **private**. The plan: commit the prep work, push it, lock down your
 > API tokens, then flip the repo to public.
 
+> **Current state (as of this prep):** Steps 1–4 and 6–7 are DONE — prep work is
+> committed, pushed, and the repo description/topics/issues are configured. The
+> repo is still **private**, intentionally. See the ⚠️ Supabase blocker below
+> before going public.
+
+---
+
+## ⚠️ Blocker before going public: dead Supabase project
+
+The Supabase URL in your local `.env` — `ryeqylmoxygkjolhcpme.supabase.co` —
+**does not resolve** (NXDOMAIN on Google + Cloudflare DNS). The project doesn't
+exist. This means one of:
+
+1. **You deleted the project / stopped using Supabase.** Community features
+   (voting, status) silently fall back to local AsyncStorage. The dead Supabase
+   code in `src/community/` should be cleaned up. The committed creds are
+   harmless (nothing behind them).
+2. **Your local `.env` is stale** and you have a *different* live project. In
+   that case, before relying on it you MUST confirm **RLS is enabled** on every
+   table of the real project.
+
+**Action:** Figure out which case you're in (log into supabase.com). Then it's
+safe to go public — the credentials referenced in the repo expose no live data
+either way. Resume at **Step 5** below.
+
 ---
 
 ## What I already did for you
