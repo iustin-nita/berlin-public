@@ -6,7 +6,7 @@
   "author": "Iustin Nita <contact@blobstudio.dev>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/iustin-nita/berlin-toilets.git"
+    "url": "https://github.com/iustin-nita/berlin-public.git"
   },
   "keywords": [
     "expo",

@@ -3,7 +3,7 @@
 This guide walks you through publishing **Berlin Public** as an open-source
 project. It assumes no prior open-source experience. Follow the steps in order.
 
-> Your repo already exists on GitHub as **`iustin-nita/berlin-toilets`** and is
+> Your repo already exists on GitHub as **`iustin-nita/berlin-public`** and is
 > currently **private**. The plan: commit the prep work, push it, lock down your
 > API tokens, then flip the repo to public.
 
@@ -148,14 +148,14 @@ git push origin main
 
 On GitHub:
 
-1. Go to `https://github.com/iustin-nita/berlin-toilets/settings`
+1. Go to `https://github.com/iustin-nita/berlin-public/settings`
 2. Scroll to **Danger Zone** → **Change repository visibility** → **Make public**
 3. Type the repo name to confirm.
 
 Or with the CLI:
 
 ```sh
-gh repo edit iustin-nita/berlin-toilets --visibility public --accept-visibility-change-consequences
+gh repo edit iustin-nita/berlin-public --visibility public --accept-visibility-change-consequences
 ```
 
 ---
@@ -166,7 +166,7 @@ Make it look maintained and discoverable:
 
 ```sh
 # Add a description + topics (helps people find it)
-gh repo edit iustin-nita/berlin-toilets \
+gh repo edit iustin-nita/berlin-public \
   --description "Find public fountains, toilets & amenities in Berlin — Expo/React Native, offline-first." \
   --add-topic expo --add-topic react-native --add-topic berlin \
   --add-topic maplibre --add-topic open-data --add-topic typescript
@@ -176,9 +176,9 @@ Then in the GitHub UI:
 
 - **Settings → Features**: enable **Issues** and (optionally) **Discussions**.
 - The **MIT** badge appears automatically once GitHub detects your `LICENSE`.
-- Consider renaming the repo `berlin-toilets` → `berlin-public` to match the app
-  name (**Settings → General → Repository name**). GitHub auto-redirects the old
-  URL. If you do, update the `repository.url` in `package.json` afterward.
+- ✅ The repo has been **renamed to `berlin-public`** to match the app name.
+  GitHub auto-redirects the old URL, and `package.json` already points to the
+  new repository.
 
 ---
 
