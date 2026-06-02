@@ -12,7 +12,7 @@
     "expo",
     "react-native",
     "berlin",
-    "mapbox",
+    "maplibre",
     "fountains",
     "public-amenities",
     "open-data"

@@ -7,30 +7,35 @@ project. It assumes no prior open-source experience. Follow the steps in order.
 > currently **private**. The plan: commit the prep work, push it, lock down your
 > API tokens, then flip the repo to public.
 
-> **Current state (as of this prep):** Steps 1–4 and 6–7 are DONE — prep work is
-> committed, pushed, and the repo description/topics/issues are configured. The
-> repo is still **private**, intentionally. See the ⚠️ Supabase blocker below
-> before going public.
+> **Current state:** Prep work (Steps 1–4) is committed and pushed. Mapbox tokens
+> are revoked and Supabase RLS is verified (Step 5). The repo is still
+> **private** — the only remaining step is flipping it to public (Step 6).
 
 ---
 
-## ⚠️ Blocker before going public: dead Supabase project
+## Supabase status — verified, safe to go public
 
-The Supabase URL in your local `.env` — `ryeqylmoxygkjolhcpme.supabase.co` —
-**does not resolve** (NXDOMAIN on Google + Cloudflare DNS). The project doesn't
-exist. This means one of:
+Your Supabase project (**`berlin-public`**, free tier) is **live** and
+**Row-Level Security (RLS) is enabled** — the Security Advisor reports **0
+errors**. Going public is safe: the only Supabase values the app exposes are the
+project URL and the **anon key**, both of which already ship inside your app
+binary (any user can extract them from the APK/IPA). Publishing the repo adds no
+new exposure.
 
-1. **You deleted the project / stopped using Supabase.** Community features
-   (voting, status) silently fall back to local AsyncStorage. The dead Supabase
-   code in `src/community/` should be cleaned up. The committed creds are
-   harmless (nothing behind them).
-2. **Your local `.env` is stale** and you have a *different* live project. In
-   that case, before relying on it you MUST confirm **RLS is enabled** on every
-   table of the real project.
+**Open items (app integrity, not blockers for going public):** the Security
+Advisor shows 4 warnings on `public.reports`:
 
-**Action:** Figure out which case you're in (log into supabase.com). Then it's
-safe to go public — the credentials referenced in the repo expose no live data
-either way. Resume at **Step 5** below.
+- **RLS Policy Always True (×2)** — two policies use `USING (true)`, i.e. they
+  allow the operation unconditionally. For a `SELECT` (read) policy this is fine
+  (report data is public). For `INSERT` / `UPDATE` / `DELETE` it means **anyone
+  with the anon key can write, edit, or delete any row**. Open Supabase →
+  Authentication → Policies, check which command each policy targets, and
+  tighten the write policies so users can only insert/modify their own rows.
+- **Public / Signed-In Can See Object in GraphQL Schema** — normal; the table is
+  exposed via the auto-generated API. Fine for public read data.
+
+Fix the write policies when convenient — it protects your data, but it is
+independent of whether the GitHub repo is public.
 
 ---
 
@@ -45,16 +50,24 @@ I prepared the repository so it's safe and welcoming to publish:
 | Added `CONTRIBUTING.md` | Tells newcomers how to set up and submit changes. |
 | Added `CODE_OF_CONDUCT.md` | Standard expectation for public projects; sets behavior norms. |
 | Added `.github/` templates | Structured bug reports, feature requests, and PR checklist. |
-| `app.config.ts` — Mapbox token now reads from env (with fallback) | Cleaner; lets contributors use their own token. |
+| Migrated maps Mapbox → MapLibre + OpenFreeMap | Removed all Mapbox tokens; maps now use free, keyless vector tiles. No API key for contributors to obtain. |
 | `.gitignore` — added `tools/`, `public/`, `*.log`, `.venv/`, `.claude/settings.local.json` | Keeps a 437 MB screenshot tool, build logs, and personal settings out of the public repo. |
 | Untracked `.claude/settings.local.json` | Personal local agent config — not meant to be shared. |
 | Removed personal path from `eas.json` | It hardcoded `/Users/iustin/...` — machine-specific. |
 | Updated `README.md` + `package.json` | Correct SDK version, license/author/repo metadata, env setup steps. |
 
-**Security audit result:** ✅ No real secrets were ever committed to git history.
-Your committed `.env` only ever contained `**` placeholders. Your real tokens
-live only in local files (`.env`, `.env.local`) that are gitignored. **You do
-not need to scrub git history or rewrite commits.**
+**Security audit result:** Your `.env` was never committed with real values
+(only `**` placeholders), and the current code tree is clean. **However, git
+*history* did contain real Mapbox tokens** — a secret `sk.*` downloads token (in
+`android/gradle.properties`, `ios/Podfile`, `app.json`) and a `pk.*` public
+token (in `app.config.ts`), both from before the MapLibre migration.
+
+**These tokens have been revoked,** so the strings left in history are now dead
+and harmless. Because the app no longer uses Mapbox at all, revoking was the
+clean fix — **you do not need to rewrite git history.** (A rewrite wouldn't help
+anyway: the repo is already on GitHub, where old commits persist in caches and
+forks. Revoking the credentials is the only thing that actually closes the
+risk.)
 
 ---
 
@@ -118,24 +131,16 @@ git push origin main
 
 ---
 
-## Step 5 — Lock down your API tokens (do this BEFORE going public)
+## Step 5 — Lock down your API credentials (do BEFORE going public)
 
-Your tokens aren't *secret* leaks, but once the repo is public, the `pk.*`
-Mapbox token in `app.config.ts` is visible to everyone. Protect it:
-
-1. **Mapbox public token** — go to
-   [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens/),
-   open your `pk.*` token, and add **URL restrictions** (your app's bundle IDs:
-   `com.blobstudio.berlinpublic`). This stops strangers from racking up usage on
-   your account.
-2. **Mapbox secret token (`sk.*`)** — confirm it is **only** in your local
-   `.env` (it is) and never referenced in tracked files. ✅ Already verified.
-3. **Supabase** — open your project → **Authentication → Policies** and confirm
-   **Row-Level Security (RLS) is enabled** on every table. The anon key is safe
-   to ship *only* if RLS gates what it can read/write. This is the single most
-   important check before going public.
-4. **Google Maps key** (if used) — restrict it by Android package name + SHA-1
-   in the [Google Cloud console](https://console.cloud.google.com/apis/credentials).
+1. **Mapbox tokens — DONE.** ✅ Both the secret `sk.*` and public `pk.*` tokens
+   have been revoked. The app migrated to keyless OpenFreeMap, so no Mapbox
+   credential exists anymore. The dead tokens left in git history are harmless.
+2. **Supabase RLS — VERIFIED.** ✅ RLS is enabled (Security Advisor: 0 errors).
+   The anon key is safe to ship. See the **Supabase status** section above for
+   the non-blocking write-policy warnings worth tightening later.
+3. **Google Maps key** — not used by this app (maps are MapLibre / OpenFreeMap).
+   Nothing to restrict.
 
 ---
 
@@ -164,7 +169,7 @@ Make it look maintained and discoverable:
 gh repo edit iustin-nita/berlin-toilets \
   --description "Find public fountains, toilets & amenities in Berlin — Expo/React Native, offline-first." \
   --add-topic expo --add-topic react-native --add-topic berlin \
-  --add-topic mapbox --add-topic open-data --add-topic typescript
+  --add-topic maplibre --add-topic open-data --add-topic typescript
 ```
 
 Then in the GitHub UI:
@@ -193,10 +198,9 @@ Then in the GitHub UI:
 
 | Item | Public-safe? | Notes |
 |------|-------------|-------|
-| Mapbox `pk.*` token | ✅ Yes (by design) | Ships in app binary. Restrict by URL/bundle ID. |
-| Mapbox `sk.*` token | ❌ **Secret** | Build-time only. Keep in local `.env`. Never commit. |
-| Supabase URL + anon key | ✅ Yes *if RLS on* | Anon key is meant for clients; RLS is what protects data. |
-| Google Maps Android key | ⚠️ Restrict it | Lock to package name + SHA-1. |
+| OpenFreeMap tiles | ✅ Yes | Keyless and free. No token to protect. |
+| (Legacy) Mapbox `sk.*` / `pk.*` tokens | ❌ Were secret — now **revoked** | Existed in old git history; dead after the MapLibre migration. |
+| Supabase URL + anon key | ✅ Yes (RLS is on) | Anon key is meant for clients; RLS is what protects the data. |
 | EAS project ID | ✅ Yes | Tied to your account; contributors use their own. |
 | `.env` / `.env.local` | ❌ Never commit | Already gitignored. |
 
