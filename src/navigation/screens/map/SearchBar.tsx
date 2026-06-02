@@ -2,14 +2,17 @@ import React from 'react';
 import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { selectionFeedback } from '../../../utils/haptics';
+import { selectionFeedback, lightImpact } from '../../../utils/haptics';
 import { useTheme } from '../../../hooks/useTheme';
+import { shadow } from '../../../constants/tokens';
 
 type SearchBarProps = {
   onResult: (coords: [number, number]) => void;
+  viewMode: 'map' | 'list';
+  onToggleView: () => void;
 };
 
-export function SearchBar({ onResult }: SearchBarProps) {
+export function SearchBar({ onResult, viewMode, onToggleView }: SearchBarProps) {
   const { colors } = useTheme();
   const [query, setQuery] = React.useState('');
   const [searching, setSearching] = React.useState(false);
@@ -43,61 +46,63 @@ export function SearchBar({ onResult }: SearchBarProps) {
   }, []);
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: colors.searchBar }]}>
-        <Feather name="search" size={16} color="#94a3b8" style={styles.searchIcon} />
-        <TextInput
-          style={[styles.input, { color: colors.text }]}
-          placeholder="Search address..."
-          placeholderTextColor="#94a3b8"
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          autoCorrect={false}
-          autoCapitalize="words"
-        />
-        {query.length > 0 ? (
-          <Pressable onPress={handleClear} accessibilityLabel="Clear search" style={styles.clearButton}>
-            <Feather name="x" size={16} color="#94a3b8" />
-          </Pressable>
-        ) : null}
-      </View>
+    <View style={[styles.bar, { backgroundColor: colors.searchBar, borderColor: colors.hairline }, shadow('floating')]}>
+      <Feather name="search" size={18} color={colors.muted} style={styles.searchIcon} />
+      <TextInput
+        style={[styles.input, { color: colors.ink }]}
+        placeholder="Search address or place…"
+        placeholderTextColor={colors.faint}
+        value={query}
+        onChangeText={setQuery}
+        onSubmitEditing={handleSearch}
+        returnKeyType="search"
+        autoCorrect={false}
+        autoCapitalize="words"
+      />
+      {query.length > 0 ? (
+        <Pressable onPress={handleClear} accessibilityLabel="Clear search" style={styles.clearButton} hitSlop={8}>
+          <Feather name="x" size={16} color={colors.faint} />
+        </Pressable>
+      ) : null}
+      <Pressable
+        onPress={() => { lightImpact(); onToggleView(); }}
+        accessibilityRole="button"
+        accessibilityLabel={viewMode === 'map' ? 'Switch to list view' : 'Switch to map view'}
+        style={[styles.toggle, { backgroundColor: colors.surface3 }]}
+      >
+        <Feather name={viewMode === 'map' ? 'list' : 'map'} size={17} color={colors.ink2} />
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 8,
-    left: 12,
-    right: 12,
-    zIndex: 12,
-  },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingLeft: 14,
+    paddingRight: 7,
+    height: 50,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    color: '#0f172a',
+    fontSize: 15,
     paddingVertical: 0,
   },
   clearButton: {
     padding: 4,
+    marginRight: 4,
+  },
+  toggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

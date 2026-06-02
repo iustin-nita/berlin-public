@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { Navigation } from './navigation';
 import { FavoritesProvider } from './favorites/FavoritesContext';
+import { PreferencesProvider } from './preferences/PreferencesContext';
 import { MapNavigationProvider } from './navigation/MapNavigationContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
@@ -101,6 +102,7 @@ export function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <FavoritesProvider>
+          <PreferencesProvider>
           <MapNavigationProvider>
             <Navigation
               ref={navigationRef}
@@ -115,6 +117,7 @@ export function App() {
             />
             <Toaster />
           </MapNavigationProvider>
+          </PreferencesProvider>
         </FavoritesProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

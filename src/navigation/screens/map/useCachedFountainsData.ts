@@ -22,6 +22,7 @@ type UseCachedDataReturn = {
   hasCachedData: boolean;
   activeCategories: Set<CategoryKey>;
   toggleCategory: (key: CategoryKey) => void;
+  setCategories: (keys: CategoryKey[]) => void;
   refresh: () => Promise<void>;
 };
 
@@ -270,6 +271,16 @@ export function useCachedFountainsData(): UseCachedDataReturn {
     });
   }, [persistSelection]);
 
+  // Replace the whole selection at once (filter sheet select-all / reset).
+  // Never allow an empty selection — falls back to the defaults.
+  const setCategories = useCallback((keys: CategoryKey[]) => {
+    setActiveCategories(() => {
+      const next = new Set<CategoryKey>(keys.length ? keys : DEFAULT_ACTIVE_CATEGORIES);
+      persistSelection(next);
+      return next;
+    });
+  }, [persistSelection]);
+
   // Load cache for a single category
   const loadCategoryCache = useCallback(async (key: CategoryKey): Promise<FeatureProps[] | null> => {
     try {
@@ -406,6 +417,7 @@ export function useCachedFountainsData(): UseCachedDataReturn {
     hasCachedData,
     activeCategories,
     toggleCategory,
+    setCategories,
     refresh,
   };
 }

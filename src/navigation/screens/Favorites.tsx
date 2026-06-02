@@ -89,8 +89,13 @@ export function Favorites() {
     }
   }, [sortBy, sortOrder]);
 
-  const renderSortControls = React.useCallback(() => (
-    <View style={styles.sortControls}>
+  const renderHeader = React.useCallback(() => (
+    <View style={styles.header}>
+      <Text style={[styles.headerTitle, { color: colors.ink }]}>Favourites</Text>
+      <RNText style={[styles.headerCount, { color: colors.muted }]}>
+        {favorites.length} saved place{favorites.length === 1 ? '' : 's'}
+      </RNText>
+      <View style={styles.sortControls}>
       {sortOptions.map((option) => {
         const active = sortBy === option.value;
         const arrow = active ? (sortOrder === 'asc' ? 'arrow-up' : 'arrow-down') : null;
@@ -121,8 +126,9 @@ export function Favorites() {
           </Pressable>
         );
       })}
+      </View>
     </View>
-  ), [sortBy, sortOrder, handleSortPress]);
+  ), [sortBy, sortOrder, handleSortPress, favorites.length, colors]);
 
   const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string | null } }) => {
     const cat = getCategoryByKey(item.type ?? 'drinking');
@@ -203,25 +209,27 @@ export function Favorites() {
       data={sortedFavorites}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.surface2 }}
       contentContainerStyle={styles.list}
-      ListHeaderComponent={renderSortControls}
-      ListHeaderComponentStyle={styles.sortHeader}
-      stickyHeaderIndices={[0]}
+      ListHeaderComponent={renderHeader}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40, gap: 12 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 32 },
+  list: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 40, gap: 10 },
+  header: { paddingTop: 8, paddingHorizontal: 4, paddingBottom: 4 },
+  headerTitle: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
+  headerCount: { fontSize: 13, marginTop: 2, marginBottom: 14 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 40 },
   emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#E0ECFF',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#EFF4FF',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
   emptySubtitle: {
     color: '#6b7280',
@@ -275,15 +283,17 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 13,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: '#ffffff',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#EDF1F5',
     shadowColor: '#0f172a',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   titleRow: {
     flexDirection: 'row',
