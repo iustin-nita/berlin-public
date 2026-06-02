@@ -1,5 +1,13 @@
-import Mapbox from '@rnmapbox/maps';
-import Constants from 'expo-constants';
+import {
+  Map as MapView,
+  Camera,
+  type CameraRef,
+  GeoJSONSource,
+  type GeoJSONSourceRef,
+  Layer,
+  Images,
+  UserLocation,
+} from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import React from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
@@ -42,8 +50,7 @@ export function MapScreen() {
   React.useEffect(() => {
     if (mapboxInitRef.current) return;
     mapboxInitRef.current = true;
-    Mapbox.setAccessToken((Constants.expoConfig?.extra as any)?.mapboxPublicToken);
-    Mapbox.setTelemetryEnabled(false);
+    // MapLibre is tokenless — no access token or telemetry setup needed.
     setMapboxReady(true);
   }, []);
 
@@ -57,8 +64,8 @@ export function MapScreen() {
   const [mapLoadFailed, setMapLoadFailed] = React.useState(false);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
-  const cameraRef = React.useRef<Mapbox.Camera>(null);
-  const sourceRef = React.useRef<Mapbox.ShapeSource>(null);
+  const cameraRef = React.useRef<CameraRef>(null);
+  const sourceRef = React.useRef<GeoJSONSourceRef>(null);
   const [cameraZoom, setCameraZoom] = React.useState<number>(3);
   const [cameraCenter, setCameraCenter] = React.useState<[number, number]>(BERLIN_CENTER);
   const hasInitiallyCentered = React.useRef(false);
@@ -85,7 +92,7 @@ export function MapScreen() {
     let isMounted = true;
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.getForegroundPermissionsAsync();
         if (status === 'granted') {
           setHasLocationPermission(true);
           const loc = await Location.getCurrentPositionAsync({});
@@ -128,20 +135,13 @@ export function MapScreen() {
   // Fly to user location once it becomes available on initial load
   const performInitialZoom = React.useCallback(() => {
     if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current && !pendingFeature && !hasHandledPendingFeature.current) {
-      const camera: any = cameraRef.current;
       try {
-        if (camera?.setCamera) {
-          camera.setCamera({
-            centerCoordinate: userLocation,
-            zoomLevel: 14,
-            animationMode: 'flyTo',
-            animationDuration: 800,
-          });
-          hasInitiallyCentered.current = true;
-        } else if (camera?.flyTo) {
-          camera.flyTo(userLocation, 800);
-          hasInitiallyCentered.current = true;
-        }
+        cameraRef.current.flyTo({
+          center: userLocation,
+          zoom: 14,
+          duration: 800,
+        });
+        hasInitiallyCentered.current = true;
       } catch (e) {
         if (__DEV__) console.warn('[Map] Failed to zoom to location', e);
       }
@@ -189,15 +189,11 @@ export function MapScreen() {
         setSelected(found || pendingFeature);
       }
 
-      const camera: any = cameraRef.current;
-      if (camera?.setCamera) {
-        camera.setCamera({
-          centerCoordinate: pendingFeature.coordinates,
-          zoomLevel: 15,
-          animationMode: 'flyTo',
-          animationDuration: 800,
-        });
-      }
+      cameraRef.current?.flyTo({
+        center: pendingFeature.coordinates,
+        zoom: 15,
+        duration: 800,
+      });
 
       clearPendingFeature();
     }
@@ -255,17 +251,11 @@ export function MapScreen() {
         setUserLocation(target);
       }
       if (!target) return;
-      const camera: any = cameraRef.current as any;
-      if (camera?.setCamera) {
-        camera.setCamera({
-          centerCoordinate: target,
-          zoomLevel: Math.max(cameraZoom, 14),
-          animationMode: 'flyTo',
-          animationDuration: 600,
-        });
-      } else if (camera?.flyTo) {
-        camera.flyTo(target, 600);
-      }
+      cameraRef.current?.flyTo({
+        center: target,
+        zoom: Math.max(cameraZoom, 14),
+        duration: 600,
+      });
     } catch (e) {
       if (__DEV__) console.warn('[Map] Failed to recenter', e);
     }
@@ -273,15 +263,11 @@ export function MapScreen() {
 
   // Search result handler: fly camera to geocoded coords
   const handleSearchResult = React.useCallback((coords: [number, number]) => {
-    const camera: any = cameraRef.current;
-    if (camera?.setCamera) {
-      camera.setCamera({
-        centerCoordinate: coords,
-        zoomLevel: 15,
-        animationMode: 'flyTo',
-        animationDuration: 800,
-      });
-    }
+    cameraRef.current?.flyTo({
+      center: coords,
+      zoom: 15,
+      duration: 800,
+    });
   }, []);
 
   const getFeatureCoordinate = React.useCallback((f: any): [number, number] | null => {
@@ -313,7 +299,8 @@ export function MapScreen() {
 
     // Selection halo
     layers.push(
-      <Mapbox.CircleLayer
+      <Layer
+        type="circle"
         key="selectedHalo"
         id="selectedHalo"
         filter={["==", ["get", "id"], selectedId] as any}
@@ -329,7 +316,8 @@ export function MapScreen() {
 
     // Cluster layers
     layers.push(
-      <Mapbox.CircleLayer
+      <Layer
+        type="circle"
         key="clusterGlow"
         id="clusterGlow"
         filter={["has", "point_count"] as any}
@@ -342,7 +330,8 @@ export function MapScreen() {
       />
     );
     layers.push(
-      <Mapbox.CircleLayer
+      <Layer
+        type="circle"
         key="clusteredPoints"
         id="clusteredPoints"
         filter={["has", "point_count"] as any}
@@ -356,12 +345,14 @@ export function MapScreen() {
       />
     );
     layers.push(
-      <Mapbox.SymbolLayer
+      <Layer
+        type="symbol"
         key="clusterCount"
         id="clusterCount"
         filter={["has", "point_count"] as any}
         style={{
           textField: ['get', 'point_count'] as any,
+          textFont: ['Noto Sans Regular'],
           textSize: 12,
           textColor: '#ffffff',
         }}
@@ -372,7 +363,8 @@ export function MapScreen() {
     for (const cat of CATEGORY_LIST) {
       if (!activeCategories.has(cat.key)) continue;
       layers.push(
-        <Mapbox.SymbolLayer
+        <Layer
+        type="symbol"
           key={`symbol_${cat.key}`}
           id={`symbol_${cat.key}`}
           filter={["==", ["get", "type"], cat.key] as any}
@@ -407,15 +399,11 @@ export function MapScreen() {
     lightImpact();
     setSelected(item);
     setViewMode('map');
-    const camera: any = cameraRef.current;
-    if (camera?.setCamera) {
-      camera.setCamera({
-        centerCoordinate: item.coordinates,
-        zoomLevel: 15,
-        animationMode: 'flyTo',
-        animationDuration: 800,
-      });
-    }
+    cameraRef.current?.flyTo({
+      center: item.coordinates,
+      zoom: 15,
+      duration: 800,
+    });
   }, []);
 
   if (!mapboxReady) {
@@ -430,21 +418,21 @@ export function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <Mapbox.MapView
+      <MapView
         style={styles.map}
-        styleURL={colors.mapStyle}
-        onDidFinishLoadingStyle={() => {
+        mapStyle={colors.mapStyle}
+        onDidFinishLoadingMap={() => {
           setStyleLoaded(true);
           setMapLoadFailed(false);
         }}
-        onMapLoadingError={() => {
+        onDidFailLoadingMap={() => {
           setMapLoadFailed(true);
           if (__DEV__) console.warn('[Map] Map loading error');
         }}
-        onCameraChanged={(e: any) => {
-          const z = e?.properties?.zoom;
+        onRegionDidChange={(e: any) => {
+          const z = e?.nativeEvent?.zoom;
           if (typeof z === 'number') setCameraZoom(z);
-          const center = e?.properties?.center;
+          const center = e?.nativeEvent?.center;
           if (Array.isArray(center) && center.length >= 2) {
             const [lng, lat] = center as [number, number];
             if (typeof lng === 'number' && typeof lat === 'number') {
@@ -452,57 +440,54 @@ export function MapScreen() {
             }
           }
         }}
-        onPress={(e: any) => {
-          if (!e.features || e.features.length === 0) {
-            setSelected(null);
-            setCandidates([]);
-          }
+        onPress={() => {
+          // Fires only for empty-area taps; feature taps are handled in
+          // GeoJSONSource.onPress (which calls stopPropagation).
+          setSelected(null);
+          setCandidates([]);
         }}
-        logoEnabled={false}
-        attributionEnabled={false}
-        scaleBarEnabled={false}
+        logo={false}
+        scaleBar={false}
       >
         {styleLoaded ? (
           <>
-            <Mapbox.Images images={markerImages} />
-            <Mapbox.Camera
+            <Images images={markerImages} />
+            <Camera
               ref={cameraRef}
-              centerCoordinate={BERLIN_CENTER}
-              zoomLevel={12}
-              animationMode="flyTo"
-              animationDuration={800}
+              initialViewState={{ center: BERLIN_CENTER, zoom: 12 }}
             />
-            {hasLocationPermission ? <Mapbox.UserLocation /> : null}
+            {hasLocationPermission ? <UserLocation /> : null}
 
-            <Mapbox.ShapeSource
+            <GeoJSONSource
               id="fountains"
               ref={sourceRef}
-              shape={featureCollection as any}
+              data={featureCollection as any}
               cluster
               clusterRadius={44}
-              clusterMaxZoomLevel={13}
-              hitbox={{ width: 30, height: 30 } as any}
-              onPress={(e) => {
-                const feat = e.features?.[0];
+              clusterMaxZoom={13}
+              hitbox={{ top: 15, right: 15, bottom: 15, left: 15 }}
+              onPress={async (e: any) => {
+                e.stopPropagation?.();
+                const feat = e.nativeEvent?.features?.[0];
                 if (!feat) return;
                 const props: any = feat.properties;
                 if (props?.cluster) {
                   const coord = getFeatureCoordinate(feat);
-                  const nextZoom = Math.min(Math.max(cameraZoom + 2, 13), 17);
-                  if (coord && (cameraRef.current as any)?.setCamera) {
-                    (cameraRef.current as any).setCamera({
-                      centerCoordinate: coord as any,
-                      zoomLevel: nextZoom,
-                      animationMode: 'flyTo',
-                      animationDuration: 500,
-                    });
-                  } else if (coord) {
-                    (cameraRef.current as any)?.flyTo(coord as any, 500);
+                  if (!coord) return;
+                  let nextZoom = Math.min(Math.max(cameraZoom + 2, 13), 17);
+                  try {
+                    const clusterId = props.cluster_id;
+                    if (clusterId != null && sourceRef.current?.getClusterExpansionZoom) {
+                      nextZoom = await sourceRef.current.getClusterExpansionZoom(clusterId);
+                    }
+                  } catch {
+                    // fall back to heuristic zoom
                   }
+                  cameraRef.current?.flyTo({ center: coord as any, zoom: nextZoom, duration: 500 });
                   return;
                 }
                 if (showMapHint) handleDismissHint();
-                const nonCluster = (e.features || []).filter((f: any) => !f.properties?.cluster);
+                const nonCluster = (e.nativeEvent?.features || []).filter((f: any) => !f.properties?.cluster);
                 if (nonCluster.length > 1) {
                   const list: FeatureProps[] = [];
                   for (const f of nonCluster.slice(0, 6)) {
@@ -520,10 +505,10 @@ export function MapScreen() {
               }}
             >
               {shapeLayers}
-            </Mapbox.ShapeSource>
+            </GeoJSONSource>
           </>
         ) : null}
-      </Mapbox.MapView>
+      </MapView>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -593,11 +578,10 @@ export function MapScreen() {
         onPick={(c) => {
           setSelected(c);
           setCandidates([]);
-          (cameraRef.current as any)?.setCamera?.({
-            centerCoordinate: c.coordinates,
-            zoomLevel: 15,
-            animationMode: 'flyTo',
-            animationDuration: 400,
+          cameraRef.current?.flyTo({
+            center: c.coordinates,
+            zoom: 15,
+            duration: 400,
           });
         }}
       />

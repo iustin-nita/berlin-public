@@ -29,8 +29,6 @@ SplashScreen.preventAutoHideAsync();
 LogBox.ignoreLogs([
   'new NativeEventEmitter()',
   'NativeEventEmitter',
-  'onDidFailLoadingMap is deprecated',
-  'rnmapbox maps',
 ]);
 
 export function App() {

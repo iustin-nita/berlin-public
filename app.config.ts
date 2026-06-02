@@ -4,13 +4,6 @@ import withFixReanimatedWorklets from './plugins/withFixReanimatedWorklets.js';
 
 // Dynamic Expo config equivalent of app.json
 
-// Public runtime token (pk.*) used by Mapbox SDK at runtime.
-// Provided via env (see .env.example); falls back to the project's public
-// token so existing builds keep working. pk.* tokens are public by design
-// (shipped in the app binary) — restrict yours by URL/scope in the Mapbox dashboard.
-const MAPBOX_PUBLIC_TOKEN =
-  process.env.MAPBOX_PUBLIC_TOKEN ??
-  'pk.eyJ1IjoiaXVzdGlubiIsImEiOiJjbTlpc2l3MjkwNHNsMmtzNjl3bG54dGNrIn0.HQ7d38Y6aQdteG-P3LODnw';
 // Supabase configuration (provided via env in dev/build)
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -65,15 +58,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-maps',
-    [
-      '@rnmapbox/maps',
-      {
-        RNMapboxMapsImpl: 'mapbox',
-      },
-    ],
+    '@maplibre/maplibre-react-native',
   ],
   extra: {
-    mapboxPublicToken: MAPBOX_PUBLIC_TOKEN,
     // Make Supabase runtime config available to the app
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY,

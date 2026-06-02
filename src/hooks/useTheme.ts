@@ -15,7 +15,8 @@ const lightColors = {
   statusBannerBg: '#FFF3CD',
   statusBannerOfflineBg: '#FFE5E5',
   statusBannerOutOfBoundsBg: '#FEF3C7',
-  mapStyle: 'mapbox://styles/mapbox/outdoors-v12',
+  // OpenFreeMap — free, keyless, OSM-based vector tiles (MapLibre-compatible)
+  mapStyle: 'https://tiles.openfreemap.org/styles/liberty',
   shadow: '#0f172a',
 } as const;
 
@@ -34,7 +35,9 @@ const darkColors = {
   statusBannerBg: '#422006',
   statusBannerOfflineBg: '#450a0a',
   statusBannerOutOfBoundsBg: '#422006',
-  mapStyle: 'mapbox://styles/mapbox/dark-v11',
+  // TODO: OpenFreeMap has no official dark style yet — using minimal 'positron'
+  // as a placeholder. Replace with a custom dark style (Maputnik export) later.
+  mapStyle: 'https://tiles.openfreemap.org/styles/positron',
   shadow: '#000000',
 } as const;
 

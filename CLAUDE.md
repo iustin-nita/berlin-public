@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Berlin Public — an Expo/React Native app for finding public fountains, toilets, and amenities in Berlin. Uses Mapbox for maps, Supabase for community features, and Berlin Open Data WFS endpoints for fountain/toilet data.
+Berlin Public — an Expo/React Native app for finding public fountains, toilets, and amenities in Berlin. Uses MapLibre + OpenFreeMap for maps, Supabase for community features, and Berlin Open Data WFS endpoints for fountain/toilet data.
 
-**Requires dev builds** (not Expo Go) due to Mapbox native module. New Architecture is enabled (SDK 55 default).
+**Requires dev builds** (not Expo Go) due to the MapLibre native module. New Architecture is enabled (SDK 55 default).
 
 ## Commands
 
@@ -15,7 +15,7 @@ Berlin Public — an Expo/React Native app for finding public fountains, toilets
 | Dev server | `npm start` (uses `expo start --dev-client`) |
 | iOS build | `npm run ios` |
 | Android build | `npm run android` |
-| Web (limited) | `npm run web` — Mapbox features are native-only |
+| Web (limited) | `npm run web` — map features are native-only |
 | Type check | `tsc --noEmit` |
 | Tests | `npm test` (Jest) |
 | Run single test | `npx jest path/to/file.test.ts` |
@@ -45,7 +45,7 @@ The main screen. Heavy module with sub-components being extracted into `map/`:
 
 ### Data Flow
 - Three WFS datasets from `gdi.berlin.de`: drinking fountains (`trinkwasserbrunnen`), ornamental fountains (`zierbrunnen`), toilets (`toiletten`)
-- Features rendered via Mapbox `ShapeSource` + `SymbolLayer` with custom marker icons per dataset
+- Features rendered via MapLibre `GeoJSONSource` + `Layer` (symbol/circle) with custom marker icons per dataset
 - Feature IDs prefixed per dataset (`drink_`, `decor_`, `toilet_`) to avoid key collisions
 - Clustering enabled for dense areas
 
@@ -58,8 +58,8 @@ The main screen. Heavy module with sub-components being extracted into `map/`:
 - `src/navigation/MapNavigationContext.tsx` — cross-screen map coordination
 
 ### Configuration
-- `app.config.ts` — dynamic Expo config; Mapbox tokens, Supabase config, scheme, plugins
-- Mapbox downloads token via `RNMAPBOX_MAPS_DOWNLOAD_TOKEN` env var (for native builds) and `~/.netrc` (for iOS CocoaPods)
+- `app.config.ts` — dynamic Expo config; Supabase config, scheme, plugins
+- Maps use MapLibre + OpenFreeMap — no token/key required
 - Supabase via `SUPABASE_URL` and `SUPABASE_ANON_KEY` env vars
 
 ## Key Conventions

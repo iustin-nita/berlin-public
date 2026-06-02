@@ -1,4 +1,4 @@
-const FETCH_TIMEOUT_MS = 10_000;
+const FETCH_TIMEOUT_MS = 30_000;
 
 /**
  * Fetch with timeout using AbortController.
