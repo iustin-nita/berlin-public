@@ -57,7 +57,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         locationWhenInUsePermission: 'Show your location and find nearby public amenities.',
       },
     ],
-    'expo-maps',
     '@maplibre/maplibre-react-native',
   ],
   extra: {
