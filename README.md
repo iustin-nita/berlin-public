@@ -1,26 +1,78 @@
+<div align="center">
+
+<img src="assets/logo.png" alt="Berlin Public logo" width="120" />
+
 # Berlin Public
 
-Find drinking fountains, public toilets, and essential amenities across Berlin. Amenity data is cached for offline browsing after the first successful sync, with community-driven status updates.
+**Find public fountains, toilets & essential amenities across Berlin.**
+
+Offline-first · community-verified · free & open-source.
+
+<a href="https://play.google.com/store/apps/details?id=com.blobstudio.berlinpublic">
+  <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="56" />
+</a>
+
+<br/>
+
+<img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" />
+<img src="https://img.shields.io/badge/Expo-SDK%2055-000020.svg?logo=expo&logoColor=white" alt="Expo SDK 55" />
+<img src="https://img.shields.io/badge/React%20Native-0.83-61DAFB.svg?logo=react&logoColor=white" alt="React Native 0.83" />
+<img src="https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white" alt="TypeScript" />
+<img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" />
+
+</div>
+
+---
+
+## Screenshots
+
+<div align="center">
+  <img src="docs/screenshots/onboarding.png" alt="Nine amenity categories" width="200" />
+  &nbsp;
+  <img src="docs/screenshots/map-overview.png" alt="Map with clustered amenities" width="200" />
+  &nbsp;
+  <img src="docs/screenshots/details-toilet.png" alt="Toilet details with community status" width="200" />
+  &nbsp;
+  <img src="docs/screenshots/details-fountain.png" alt="Drinking fountain details" width="200" />
+</div>
 
 ## Features
 
-- 🚰 **Drinking Fountains** - Find nearby water fountains with community verification
-- 🚻 **Public Restrooms** - Locate toilets across Berlin with status updates
-- 📍 **Offline Browsing** - Cached amenity data remains available after the first successful sync
-- ⭐ **Favorites** - Save your go-to spots for quick access
-- 👍 **Community Voting** - Vote on amenity status to help others
-- 🗺️ **Beautiful Maps** - Powered by MapLibre + OpenFreeMap (free & open-source)
+Nine categories of public infrastructure, all on one map:
+
+| | | |
+|---|---|---|
+| 🚰 Drinking fountains | 🚻 Public toilets | 🔥 BBQ spots |
+| 🔧 Bike repair stations | ⚡ EV charging | 🛝 Playgrounds |
+| 🏊 Bathing spots | ❄️ Cool spaces | ⛲ Decorative fountains |
+
+Plus everything you need to actually use them:
+
+- 📍 **Offline browsing** — amenity data is cached after the first sync; the map keeps working with no signal
+- 🔎 **Filter & search** — toggle categories and search by address
+- 📋 **Rich details** — hours, fees, accessibility, baby-changing, operator, season, official links
+- 👍 **Community status** — vote a toilet open/closed or a fountain flowing/dry, and see how fresh the info is
+- ⭐ **Favorites** — save your go-to spots for quick access
+- 🧭 **One-tap navigation** — hands off to Citymapper, Google Maps, Apple Maps, or the web
 
 ## Tech Stack
 
-- React Native with Expo SDK 55 (New Architecture)
-- React Navigation (Native Stack + Bottom Tabs)
-- MapLibre Native for React Native (with OpenFreeMap tiles — no API key)
-- TypeScript
-- Offline-first amenity caching with AsyncStorage
-- Berlin public GIS/WFS data feeds plus community status reports
+- **React Native** with **Expo SDK 55** (New Architecture / Fabric)
+- **MapLibre Native** + **[OpenFreeMap](https://openfreemap.org/)** vector tiles — free, keyless, OpenStreetMap-based
+- **React Navigation** v7 (native-stack + bottom-tabs, static config)
+- **TypeScript** (strict)
+- **Supabase** for community status reports
+- Offline-first caching with **AsyncStorage**
+
+## Data Sources
+
+- **Amenity data** — [Berlin Open Data](https://daten.berlin.de/) WFS feeds (`gdi.berlin.de`): drinking fountains, ornamental fountains, public toilets
+- **Map tiles** — [OpenFreeMap](https://openfreemap.org/), rendered from [OpenStreetMap](https://www.openstreetmap.org/copyright) data
+- **Community status** — crowd-sourced reports from app users
 
 ## Getting Started
+
+> Requires a **development build** — this app uses the MapLibre native module and can't run in Expo Go.
 
 1. Install dependencies:
    ```sh
@@ -31,41 +83,24 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
    ```sh
    cp .env.example .env
    ```
-   Maps need no key (MapLibre + OpenFreeMap). Fill in (optional) Supabase credentials. See
-   [`.env.example`](.env.example) for what each variable is for.
+   Maps need **no key** (MapLibre + OpenFreeMap). Supabase credentials are optional —
+   without them, community features fall back to local storage. See
+   [`.env.example`](.env.example) for what each variable does.
 
-3. Start the development server:
+3. Start the dev server:
    ```sh
    npm start
    ```
 
-4. Build and run on device:
+4. Build and run on a device or emulator:
    ```sh
-   npm run ios
-   # or
    npm run android
+   # or
+   npm run ios
    ```
 
-## Notes
-
-This project uses a [development build](https://docs.expo.dev/develop/development-builds/introduction/) and cannot be run with [Expo Go](https://expo.dev/go). To run the app with Expo Go, edit the `package.json` file, remove the `expo-dev-client` package and `--dev-client` flag from the `start` script.
-
-We highly recommend using the development builds for normal development and testing.
-
-This project is now prebuild-first: `app.config.ts` is the source of truth for native configuration, and `ios/` and `android/` are generated artifacts. Regenerate them with `npm run prebuild`, `npm run prebuild:android`, or `npm run prebuild:ios` instead of editing committed native files by hand.
-
-## Publishing
-
-See `PRE_LAUNCH_CHECKLIST.md` for complete publishing guide.
-
-Quick commands:
-```sh
-# Build for Android
-eas build --platform android --profile production
-
-# Build for iOS
-eas build --platform ios --profile production
-```
+`app.config.ts` is the source of truth for native config — `android/` and `ios/`
+are generated. Regenerate them with `npm run prebuild` instead of editing by hand.
 
 ## Contributing
 
@@ -73,11 +108,17 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for
 setup, conventions, and the pull-request process. By participating you agree to
 our [Code of Conduct](CODE_OF_CONDUCT.md).
 
+Quick checks before opening a PR:
+```sh
+tsc --noEmit   # type check
+npm test       # unit tests
+```
+
 ## License
 
 [MIT](LICENSE) © Iustin Nita
 
 ## Contact
 
-- Email: contact@blobstudio.dev
-- Privacy Policy: https://iustin-nita.github.io/berlin-privacy-policy/PRIVACY_POLICY.md
+- **Email:** contact@blobstudio.dev
+- **Privacy Policy:** https://iustin-nita.github.io/berlin-privacy-policy/PRIVACY_POLICY.md
