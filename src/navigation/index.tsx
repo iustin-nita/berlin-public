@@ -19,8 +19,8 @@ const HomeTabs = createBottomTabNavigator({
   screenOptions: ({ theme }) => ({
     tabBarStyle: {
       paddingTop: 12,
-      paddingBottom: 8,
-      height: 68,
+      paddingBottom: 16,
+      height: 76,
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: theme.dark ? '#334155' : '#e2e8f0',
       backgroundColor: theme.dark ? '#0f172a' : '#ffffff',
