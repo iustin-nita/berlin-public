@@ -60,7 +60,7 @@ export function SearchBar({ onResult, viewMode, onToggleView }: SearchBarProps) 
         autoCapitalize="words"
       />
       {query.length > 0 ? (
-        <Pressable onPress={handleClear} accessibilityLabel="Clear search" style={styles.clearButton} hitSlop={8}>
+        <Pressable onPress={handleClear} accessibilityLabel="Clear search" style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Feather name="x" size={16} color={colors.faint} />
         </Pressable>
       ) : null}

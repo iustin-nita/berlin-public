@@ -274,11 +274,9 @@ export function useCachedFountainsData(): UseCachedDataReturn {
   // Replace the whole selection at once (filter sheet select-all / reset).
   // Never allow an empty selection — falls back to the defaults.
   const setCategories = useCallback((keys: CategoryKey[]) => {
-    setActiveCategories(() => {
-      const next = new Set<CategoryKey>(keys.length ? keys : DEFAULT_ACTIVE_CATEGORIES);
-      persistSelection(next);
-      return next;
-    });
+    const next = new Set<CategoryKey>(keys.length ? keys : DEFAULT_ACTIVE_CATEGORIES);
+    setActiveCategories(next);
+    persistSelection(next);
   }, [persistSelection]);
 
   // Load cache for a single category

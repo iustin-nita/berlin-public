@@ -154,7 +154,7 @@ export function Onboarding() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.topRow}>
         <BrandMark imageSize={26} spacing={8} textStyle={styles.brandText} />
-        <TouchableOpacity onPress={handleSkip} hitSlop={10}>
+        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>

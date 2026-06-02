@@ -52,7 +52,7 @@ export function FilterSheet({ visible, activeCategories, onToggle, setCategories
           <Text style={[styles.title, { color: colors.ink }]}>Show on map</Text>
           <Pressable
             onPress={() => { lightImpact(); setCategories(allSelected ? [...DEFAULT_ACTIVE_CATEGORIES] : CATEGORY_LIST.map((c) => c.key)); }}
-            hitSlop={8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text style={styles.action}>{allSelected ? 'Reset' : 'Select all'}</Text>
           </Pressable>
