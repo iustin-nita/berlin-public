@@ -9,13 +9,13 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
 - 📍 **Offline Browsing** - Cached amenity data remains available after the first successful sync
 - ⭐ **Favorites** - Save your go-to spots for quick access
 - 👍 **Community Voting** - Vote on amenity status to help others
-- 🗺️ **Beautiful Maps** - Powered by Mapbox with smooth navigation
+- 🗺️ **Beautiful Maps** - Powered by MapLibre + OpenFreeMap (free & open-source)
 
 ## Tech Stack
 
 - React Native with Expo SDK 55 (New Architecture)
 - React Navigation (Native Stack + Bottom Tabs)
-- Mapbox Maps for React Native
+- MapLibre Native for React Native (with OpenFreeMap tiles — no API key)
 - TypeScript
 - Offline-first amenity caching with AsyncStorage
 - Berlin public GIS/WFS data feeds plus community status reports
@@ -31,7 +31,7 @@ Find drinking fountains, public toilets, and essential amenities across Berlin. 
    ```sh
    cp .env.example .env
    ```
-   Fill in your own Mapbox tokens and (optional) Supabase credentials. See
+   Maps need no key (MapLibre + OpenFreeMap). Fill in (optional) Supabase credentials. See
    [`.env.example`](.env.example) for what each variable is for.
 
 3. Start the development server:
