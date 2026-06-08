@@ -13,21 +13,22 @@ import { Settings } from './screens/Settings';
 import { Favorites } from './screens/Favorites';
 import { NotFound } from './screens/NotFound';
 import { Onboarding } from './screens/Onboarding';
-import { MapHeader } from './screens/map/MapHeader';
 
 const HomeTabs = createBottomTabNavigator({
   screenOptions: ({ theme }) => ({
+    tabBarActiveTintColor: '#1a56db',
+    tabBarInactiveTintColor: theme.dark ? '#64748b' : '#94a3b8',
     tabBarStyle: {
       paddingTop: 12,
-      paddingBottom: 16,
-      height: 76,
+      paddingBottom: 22,
+      height: 84,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: theme.dark ? '#334155' : '#e2e8f0',
+      borderTopColor: theme.dark ? '#334155' : '#E7EBF0',
       backgroundColor: theme.dark ? '#0f172a' : '#ffffff',
     },
     tabBarLabelStyle: {
-      fontSize: 12,
-      fontWeight: '500',
+      fontSize: 11,
+      fontWeight: '700',
       marginBottom: 4,
     },
   }),
@@ -36,7 +37,7 @@ const HomeTabs = createBottomTabNavigator({
       screen: MapScreen,
       options: {
         title: 'Map',
-        header: () => <MapHeader />,
+        headerShown: false,
         tabBarIcon: ({ color, size }) => (
           <Feather name="map-pin" color={color} size={size} />
         ),

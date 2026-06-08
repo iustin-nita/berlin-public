@@ -1,6 +1,6 @@
 import React from 'react';
 import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { toast } from 'sonner-native';
 import { FeatureProps } from '../../../types/api';
 import { getSanitizedInfo, isTwentyFourSeven } from './utils';
@@ -11,6 +11,7 @@ import { getCategoryByKey, getVoteLabels } from '../../../constants/categories';
 import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { lightImpact } from '../../../utils/haptics';
+import { palette } from '../../../constants/tokens';
 
 export type DetailsSheetProps = {
   refInstance: React.RefObject<BottomSheet | null>;
@@ -118,13 +119,13 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
   return (
     <BottomSheet
       ref={refInstance}
-      snapPoints={['32%', '58%']}
+      snapPoints={['42%', '88%']}
       index={-1}
       enablePanDownToClose
       handleIndicatorStyle={styles.sheetHandle}
       onClose={onClose}
     >
-      <BottomSheetView style={styles.sheetContent}>
+      <BottomSheetScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
         {selected ? (
           <View>
             <View style={styles.headerSection}>
@@ -346,7 +347,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   style={[
                     styles.voteButton,
                     (hasReports || myVote === 'working') ? styles.voteYes : styles.voteButtonMuted,
-                    myVote === 'working' && styles.voteButtonSelected,
+                    myVote === 'working' && styles.voteSelectedYes,
                   ]}
                   accessibilityRole="button"
                   disabled={votingDisabled}
@@ -376,7 +377,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                         !hasReports && myVote !== 'working' && styles.voteCountMuted,
                         myVote === 'working' && styles.voteCountSelected,
                       ]}>
-                        ({workingCount})
+                        {workingCount}
                       </Text>
                     )}
                   </View>
@@ -385,7 +386,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   style={[
                     styles.voteButton,
                     (hasReports || myVote === 'not_working') ? styles.voteNo : styles.voteButtonMuted,
-                    myVote === 'not_working' && styles.voteButtonSelected,
+                    myVote === 'not_working' && styles.voteSelectedNo,
                   ]}
                   accessibilityRole="button"
                   disabled={votingDisabled}
@@ -415,7 +416,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                         !hasReports && myVote !== 'not_working' && styles.voteCountMuted,
                         myVote === 'not_working' && styles.voteCountSelected,
                       ]}>
-                        ({notWorkingCount})
+                        {notWorkingCount}
                       </Text>
                     )}
                   </View>
@@ -423,44 +424,41 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
               </View>
             </View>
 
-            {/* Actions: Navigate, Share, Copy Link */}
+            {/* Actions: Navigate (primary), Share + Copy (icon squares) */}
             <View style={styles.actionsRow}>
               <Pressable
                 style={[styles.actionButton, styles.primaryAction]}
                 accessibilityRole="button"
+                accessibilityLabel="Navigate"
                 onPress={onNavigate}
               >
                 <View style={styles.actionContent}>
-                  <Feather name="navigation" size={18} color="#ffffff" />
+                  <Feather name="navigation" size={17} color="#ffffff" />
                   <Text style={styles.actionText}>Navigate</Text>
                 </View>
               </Pressable>
               <Pressable
-                style={[styles.actionButton, styles.secondaryAction]}
+                style={styles.iconAction}
                 accessibilityRole="button"
+                accessibilityLabel="Share"
                 onPress={handleShare}
               >
-                <View style={styles.actionContent}>
-                  <Feather name="share-2" size={18} color="#334155" />
-                  <Text style={[styles.actionText, styles.secondaryActionText]}>Share</Text>
-                </View>
+                <Feather name="share-2" size={18} color="#1E293B" />
               </Pressable>
               <Pressable
-                style={[styles.actionButton, styles.secondaryAction]}
+                style={styles.iconAction}
                 accessibilityRole="button"
+                accessibilityLabel="Copy link"
                 onPress={handleCopy}
               >
-                <View style={styles.actionContent}>
-                  <Feather name="copy" size={18} color="#334155" />
-                  <Text style={[styles.actionText, styles.secondaryActionText]}>Copy</Text>
-                </View>
+                <Feather name="copy" size={18} color="#1E293B" />
               </Pressable>
             </View>
           </View>
         ) : (
           <View />
         )}
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheet>
   );
 }
@@ -478,84 +476,85 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  sheetContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  sheetHandle: { backgroundColor: '#E0E0E0' },
-  headerSection: { marginBottom: 8, gap: 6 },
+  sheetContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 26 },
+  sheetHandle: { backgroundColor: '#DDE3EA', width: 38, height: 5, borderRadius: 3 },
+  headerSection: { marginBottom: 2, gap: 7 },
   headerTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    gap: 6,
+    paddingLeft: 8,
+    paddingRight: 11,
+    paddingVertical: 5,
     borderRadius: 999,
   },
-  typePillText: { fontWeight: '700', fontSize: 10, color: '#ffffff' },
-  title: { fontSize: 20, fontWeight: '800', color: '#0f172a', lineHeight: 26 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  locationText: { color: '#64748b', fontSize: 12, flexShrink: 1 },
+  typePillText: { fontWeight: '800', fontSize: 11.5, color: '#ffffff', letterSpacing: 0.4 },
+  title: { fontSize: 23, fontWeight: '800', color: '#0F172A', lineHeight: 27, letterSpacing: -0.5, marginTop: 6 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  locationText: { color: '#64748B', fontSize: 13, flexShrink: 1 },
   distanceRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: palette.blueSoft, paddingHorizontal: 11, paddingVertical: 6, borderRadius: 9, alignSelf: 'flex-start',
   },
-  distanceText: { color: '#1a56db', fontWeight: '600', fontSize: 12 },
+  distanceText: { color: palette.blue, fontWeight: '700', fontSize: 13 },
   favButton: {
-    height: 32, width: 32, borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: '#e2e8f0',
+    height: 38, width: 38, borderRadius: 19,
+    borderWidth: 1, borderColor: '#E7EBF0',
     backgroundColor: '#ffffff',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#0f172a', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
-  favButtonActive: { backgroundColor: '#FFF7E6', borderColor: '#f59e0b' },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  favButtonActive: { backgroundColor: palette.starSoft, borderColor: palette.starBorder },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 13, marginBottom: 2 },
   chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#f1f5f9', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#F1F5F9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6,
   },
-  chipText: { color: '#334155', fontWeight: '500', fontSize: 11 },
+  chipText: { color: '#1E293B', fontWeight: '600', fontSize: 12 },
   detailsCard: {
-    backgroundColor: '#f8fafc', borderRadius: 12, padding: 12,
-    marginBottom: 8, gap: 2,
+    backgroundColor: '#F6F8FB', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 2,
+    marginTop: 15, borderWidth: 1, borderColor: '#EDF1F5',
   },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 4, gap: 10 },
-  detailLabel: { width: 90, color: '#475569', fontWeight: '600', fontSize: 12 },
+  detailRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 11, gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EDF1F5' },
+  detailLabel: { width: 110, color: '#64748B', fontWeight: '600', fontSize: 13 },
   detailValueContainer: { flex: 1, alignItems: 'flex-start', gap: 4 },
-  detailValue: { color: '#111827', fontSize: 12, lineHeight: 16 },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  link: { color: '#1d4ed8', textDecorationLine: 'underline' },
-  statusCard: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 10, marginBottom: 8, gap: 6 },
+  detailValue: { color: '#0F172A', fontSize: 13.5, lineHeight: 19 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  link: { color: palette.blue, fontWeight: '600' },
+  statusCard: { backgroundColor: '#F6F8FB', borderRadius: 16, padding: 15, marginTop: 14, gap: 11, borderWidth: 1, borderColor: '#EDF1F5' },
   statusHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  statusLabel: { color: '#6b7280', fontSize: 12, fontWeight: '500' },
-  statusBadge: { borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
-  statusBadgeText: { fontWeight: '700', fontSize: 11 },
-  statusHint: { color: '#94a3b8', fontSize: 11 },
-  voteRow: { flexDirection: 'row', gap: 8 },
+  statusLabel: { color: '#64748B', fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  statusBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  statusBadgeText: { fontWeight: '800', fontSize: 10.5, letterSpacing: 0.3, textTransform: 'uppercase' },
+  statusHint: { color: '#94A3B8', fontSize: 11.5, textAlign: 'center' },
+  voteRow: { flexDirection: 'row', gap: 9 },
   voteButton: {
-    flex: 1, borderRadius: 14, paddingVertical: 12,
+    flex: 1, borderRadius: 13, paddingVertical: 14,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#e2e8f0',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1,
+    backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#E7EBF0',
   },
-  voteButtonMuted: { backgroundColor: '#fafafa', borderColor: '#e2e8f0' },
-  voteButtonSelected: { borderWidth: 2, borderColor: '#1a56db', backgroundColor: '#1a56db', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  voteButtonContent: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-  voteYes: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
-  voteNo: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
-  voteText: { fontWeight: '800', color: '#1e293b', fontSize: 12 },
-  voteTextMuted: { color: '#94a3b8', fontWeight: '600' },
+  voteButtonMuted: { backgroundColor: '#ffffff', borderColor: '#E7EBF0' },
+  voteSelectedYes: { backgroundColor: palette.good, borderWidth: 0 },
+  voteSelectedNo: { backgroundColor: palette.bad, borderWidth: 0 },
+  voteButtonContent: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+  voteYes: { backgroundColor: '#ffffff', borderColor: '#E7EBF0' },
+  voteNo: { backgroundColor: '#ffffff', borderColor: '#E7EBF0' },
+  voteText: { fontWeight: '700', color: '#1E293B', fontSize: 13.5 },
+  voteTextMuted: { color: '#94A3B8', fontWeight: '700' },
   voteTextSelected: { color: '#ffffff' },
-  voteCount: { fontSize: 11, color: '#64748b', marginLeft: 4, fontWeight: '600' },
-  voteCountMuted: { color: '#cbd5e1' },
-  voteCountSelected: { color: '#ffffff', fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', gap: 8 },
+  voteCount: { fontSize: 11.5, color: '#64748B', fontWeight: '800', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: '#F1F5F9' },
+  voteCountMuted: { color: '#CBD5E1' },
+  voteCountSelected: { color: '#ffffff', backgroundColor: 'rgba(255,255,255,0.25)' },
+  actionsRow: { flexDirection: 'row', gap: 9, marginTop: 15 },
   actionButton: {
-    flex: 1, borderRadius: 14, paddingVertical: 14,
+    flex: 1.5, height: 52, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
   },
-  primaryAction: { backgroundColor: '#1a56db' },
-  secondaryAction: { backgroundColor: '#f1f5f9', shadowOpacity: 0.05 },
-  actionContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  actionText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
-  secondaryActionText: { color: '#334155', fontWeight: '700' },
+  primaryAction: { backgroundColor: palette.blue },
+  actionContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  actionText: { color: '#ffffff', fontWeight: '700', fontSize: 15.5 },
+  iconAction: {
+    width: 52, height: 52, borderRadius: 15, backgroundColor: '#F1F5F9',
+    alignItems: 'center', justifyContent: 'center',
+  },
 });
