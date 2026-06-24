@@ -68,18 +68,6 @@ function calculateDecayWeight(createdAt: number): number {
 }
 
 /**
- * Check if device is within cooldown period for a feature.
- */
-async function isInCooldown(featureId: string, deviceId: string): Promise<boolean> {
-  const reports = await getReportsForFeature(featureId);
-  const cutoff = Date.now() - (COOLDOWN_HOURS * 60 * 60 * 1000);
-  
-  return reports.some(report => 
-    report.deviceId === deviceId && report.createdAt > cutoff
-  );
-}
-
-/**
  * Submit a community report for a feature.
  * Enforces per-device cooldown period.
  */
@@ -94,16 +82,20 @@ export async function submitReport(
   }
   try {
     const deviceId = await getDeviceId();
+    const reports = await getReportsForFeature(featureId);
     
     // Check cooldown
-    if (await isInCooldown(featureId, deviceId)) {
+    const cutoff = Date.now() - (COOLDOWN_HOURS * 60 * 60 * 1000);
+    const existingReport = reports.find(report =>
+      report.deviceId === deviceId && report.createdAt > cutoff
+    );
+
+    if (existingReport && existingReport.status === status) {
       return { 
         success: false, 
         error: 'You reported this recently. Try again later or change your vote.' 
       };
     }
-
-    const reports = await getReportsForFeature(featureId);
     
     // Remove any existing report from this device
     const filteredReports = reports.filter(r => r.deviceId !== deviceId);
@@ -121,8 +113,8 @@ export async function submitReport(
     filteredReports.push(newReport);
     
     // Keep only reports from last 60 days to prevent unbounded growth
-    const cutoff = Date.now() - (60 * 24 * 60 * 60 * 1000);
-    const recentReports = filteredReports.filter(r => r.createdAt > cutoff);
+    const storageCutoff = Date.now() - (60 * 24 * 60 * 60 * 1000);
+    const recentReports = filteredReports.filter(r => r.createdAt > storageCutoff);
     
     await saveReportsForFeature(featureId, recentReports);
     
