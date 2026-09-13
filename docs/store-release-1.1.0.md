@@ -14,6 +14,8 @@ Data safety now declares optional installation IDs and community reports, plus a
 
 The policy and report-deletion request link point to the current repository privacy policy. Deletion requests cover community reports we can identify; this is not a promise to delete independent provider logs.
 
+The English full description was refreshed to explain voting, optional location, and the distinction between cached amenity information and offline maps. Removed the old "No signal? Still works" marketing screenshot from the listing draft. The original app icon is explicitly named `ChatGPT Image Oct 26, 2025, 07_51_00 PM.png`; it and the feature graphic containing that artwork were labeled as AI-created/edited through Play's asset declaration. The five remaining screenshots retain their existing labels. Canonical description: `metadata/google-play/en-US/full-description.txt`.
+
 ## App Store
 
 - App: **6811594594**, Berlin Public.

@@ -1,0 +1,19 @@
+Find Berlin public toilets quickly with a simple map built for everyday life in the city. Berlin Public Toilets & More helps you discover essential public amenities across Berlin, including toilets, drinking fountains, EV charging stations, playgrounds, bike repair stations, bathing spots, cool spaces, BBQ areas, and decorative fountains.
+
+Whether you live in Berlin or you are just visiting, search for an address, browse amenity categories, and explore nearby places on the map or in a list.
+
+Use Berlin Public Toilets & More to:
+
+• Find public toilets and drinking fountains
+• Locate EV charging stations and bike repair stations
+• Discover playgrounds, bathing spots, cool spaces, and BBQ areas
+• Browse decorative fountains and other public places
+• Filter the map and save favorites for quick access
+• Open directions in your preferred navigation app
+• Share community reports about whether an amenity is working
+
+After a successful download, cached amenity information remains available with limited connectivity. New map tiles, address searches, refreshed data, and community reports require internet access. This is not a complete offline map.
+
+Location access is optional for browsing. Android address search requires location permission. Community reports are unverified suggestions from other users, and conditions may change.
+
+Public amenity data comes from Berlin's open GIS services. Berlin Public is an independent app and is not an official city service.
