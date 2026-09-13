@@ -1,6 +1,6 @@
 import React from 'react';
 import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { toast } from 'sonner-native';
 import { FeatureProps } from '../../../types/api';
 import { getSanitizedInfo, isTwentyFourSeven } from './utils';
@@ -11,6 +11,7 @@ import { getCategoryByKey, getVoteLabels } from '../../../constants/categories';
 import { CategoryIcon } from '../../../components/CategoryIcon';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { lightImpact } from '../../../utils/haptics';
+import { useTheme } from '../../../hooks/useTheme';
 
 export type DetailsSheetProps = {
   refInstance: React.RefObject<BottomSheet | null>;
@@ -22,6 +23,8 @@ export type DetailsSheetProps = {
 };
 
 export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isOnline, onNavigate }: DetailsSheetProps) {
+  const { colors } = useTheme();
+  const styles = useDetailStyles();
   const { isFavorite, toggleFavorite } = useFavorites();
   const isFav = selected ? isFavorite(selected.id) : false;
 
@@ -118,13 +121,16 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
   return (
     <BottomSheet
       ref={refInstance}
-      snapPoints={['32%', '58%']}
+      snapPoints={['45%', '88%']}
+      enableDynamicSizing={false}
+      accessible={false}
       index={-1}
       enablePanDownToClose
+      backgroundStyle={{ backgroundColor: colors.surface }}
       handleIndicatorStyle={styles.sheetHandle}
       onClose={onClose}
     >
-      <BottomSheetView style={styles.sheetContent}>
+      <BottomSheetScrollView contentContainerStyle={styles.sheetContent}>
         {selected ? (
           <View>
             <View style={styles.headerSection}>
@@ -330,14 +336,18 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
                   </View>
                 ) : (
                   <View style={[styles.statusBadge, { backgroundColor: '#F5F5F5' }]}>
-                    <Text style={[styles.statusBadgeText, { color: '#616161' }]}>No reports yet</Text>
+                    <Text style={[styles.statusBadgeText, { color: '#616161' }]}>{communityStatus.error ? 'Unavailable' : 'No reports yet'}</Text>
                   </View>
                 )}
               </View>
-              {!hasReports && !communityStatus.loading ? (
-                <Text style={styles.statusHint}>Help others - report current status</Text>
+              {communityStatus.error && isOnline ? (
+                <Pressable onPress={communityStatus.refresh} accessibilityRole="button" accessibilityLabel="Retry community status">
+                  <Text style={styles.statusHint}>{communityStatus.error} Tap to retry.</Text>
+                </Pressable>
               ) : !isOnline ? (
                 <Text style={styles.statusHint}>Voting is available only while online.</Text>
+              ) : !hasReports && !communityStatus.loading ? (
+                <Text style={styles.statusHint}>Help others - report current status</Text>
               ) : communityStatus.loading ? (
                 <Text style={styles.statusHint}> </Text>
               ) : null}
@@ -460,13 +470,14 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
         ) : (
           <View />
         )}
-      </BottomSheetView>
+      </BottomSheetScrollView>
     </BottomSheet>
   );
 }
 
 /** Simple detail row helper */
 function DetailRow({ label, value }: { label: string; value: string }) {
+  const styles = useDetailStyles();
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -477,7 +488,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   sheetContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
   sheetHandle: { backgroundColor: '#E0E0E0' },
   headerSection: { marginBottom: 8, gap: 6 },
@@ -542,10 +553,10 @@ const styles = StyleSheet.create({
   voteYes: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
   voteNo: { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
   voteText: { fontWeight: '800', color: '#1e293b', fontSize: 12 },
-  voteTextMuted: { color: '#94a3b8', fontWeight: '600' },
+  voteTextMuted: { color: '#475569', fontWeight: '600' },
   voteTextSelected: { color: '#ffffff' },
   voteCount: { fontSize: 11, color: '#64748b', marginLeft: 4, fontWeight: '600' },
-  voteCountMuted: { color: '#cbd5e1' },
+  voteCountMuted: { color: '#64748b' },
   voteCountSelected: { color: '#ffffff', fontWeight: '700' },
   actionsRow: { flexDirection: 'row', gap: 8 },
   actionButton: {
@@ -559,3 +570,19 @@ const styles = StyleSheet.create({
   actionText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
   secondaryActionText: { color: '#334155', fontWeight: '700' },
 });
+
+function useDetailStyles() {
+  const { colors } = useTheme();
+  return {
+    ...baseStyles,
+    title: { ...baseStyles.title, color: colors.text },
+    locationText: { ...baseStyles.locationText, color: colors.textSecondary },
+    detailsCard: { ...baseStyles.detailsCard, backgroundColor: colors.background },
+    detailLabel: { ...baseStyles.detailLabel, color: colors.textSecondary },
+    detailValue: { ...baseStyles.detailValue, color: colors.text },
+    statusCard: { ...baseStyles.statusCard, backgroundColor: colors.background },
+    statusLabel: { ...baseStyles.statusLabel, color: colors.textSecondary },
+    statusHint: { ...baseStyles.statusHint, color: colors.textSecondary },
+    sheetHandle: { ...baseStyles.sheetHandle, backgroundColor: colors.textMuted },
+  };
+}

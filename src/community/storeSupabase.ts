@@ -23,6 +23,7 @@ export async function submitReport(
           feature_id: featureId,
           status,
           device_id: deviceId,
+          created_at: new Date().toISOString(),
           lat: coordinates?.lat,
           lng: coordinates?.lng,
         },
@@ -43,7 +44,7 @@ export async function submitReport(
 
 export async function getStatus(featureId: string): Promise<StatusSummary> {
   try {
-    if (!supabase) return { totals: { working: 0, notWorking: 0 }, confidence: 0 };
+    if (!supabase) throw new Error('Community service is not configured');
 
     const deviceId = await getDeviceId();
     const since = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
@@ -57,7 +58,7 @@ export async function getStatus(featureId: string): Promise<StatusSummary> {
 
     if (error) {
       if (__DEV__) console.warn(`[Community] Supabase get status error: ${error.code} – ${error.message} (hint: ${error.hint ?? 'none'})`);
-      return { totals: { working: 0, notWorking: 0 }, confidence: 0 };
+      throw new Error('Community status could not be loaded');
     }
 
     const reports = data ?? [];
@@ -79,15 +80,14 @@ export async function getStatus(featureId: string): Promise<StatusSummary> {
     const confidence = total > 0 ? Math.abs(workingWeight - notWorkingWeight) / total : 0;
 
     return {
-      totals: { working: Math.round(workingWeight), notWorking: Math.round(notWorkingWeight) },
+      totals: { working: reports.filter((r) => r.status === 'working').length, notWorking: reports.filter((r) => r.status === 'not_working').length },
       lastReport,
       myVote,
       confidence,
     };
   } catch (e) {
     if (__DEV__) console.warn('[Community] Supabase get status error', e);
-    return { totals: { working: 0, notWorking: 0 }, confidence: 0 };
+    throw new Error('Community status could not be loaded');
   }
 }
-
 

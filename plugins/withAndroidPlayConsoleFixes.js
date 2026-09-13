@@ -3,7 +3,7 @@ const {
   withAndroidManifest,
   withAndroidStyles,
   withMainActivity,
-} = require('@expo/config-plugins');
+} = require('expo/config-plugins');
 
 const LARGE_SCREEN_THRESHOLD_DP = 600;
 const ORIENTATION_IMPORT = 'import android.content.pm.ActivityInfo';

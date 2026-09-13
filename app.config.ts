@@ -1,6 +1,7 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 import withAndroidPlayConsoleFixes from './plugins/withAndroidPlayConsoleFixes.js';
 import withFixReanimatedWorklets from './plugins/withFixReanimatedWorklets.js';
+import withMapLibreNetworking from './plugins/withMapLibreNetworking.js';
 
 // Dynamic Expo config equivalent of app.json
 
@@ -12,18 +13,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Berlin Public',
   slug: 'berlin-public',
-  version: '1.0.0',
+  version: '1.1.0',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
   scheme: 'berlinpublic',
-  description: 'Find public fountains, restrooms, and essential amenities across Berlin. Works offline with community-driven updates.',
+  description: 'Find public fountains, restrooms, and essential amenities across Berlin. Save favorites and browse cached amenity data offline.',
   primaryColor: '#3B82F6',
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.blobstudio.berlinpublic',
     infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
-        'We use your location to show nearby public amenities and calculate walking distances.',
+        'We use your location to show nearby public amenities and calculate approximate distances.',
     },
   },
   android: {
@@ -43,7 +45,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     withAndroidPlayConsoleFixes as any,
     withFixReanimatedWorklets as any,
+    withMapLibreNetworking as any,
     'expo-asset',
+    'expo-font',
     [
       'expo-splash-screen',
       {

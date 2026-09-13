@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FeatureProps } from '../../../types/api';
 import { CategoryKey, CATEGORIES, CategoryDef, DEFAULT_ACTIVE_CATEGORIES } from '../../../constants/categories';
@@ -159,7 +159,7 @@ function mapCollection(geo: any, cat: CategoryDef): FeatureProps[] {
         common.bbq = {
           bookingUrl: props?.buchen || undefined,
           fee: props?.gebuehr || undefined,
-          rules: props?.grillarea || undefined,
+          rules: props?.regeln || undefined,
           district: props?.bezirk || undefined,
         };
       }
@@ -215,197 +215,130 @@ function mapCollection(geo: any, cat: CategoryDef): FeatureProps[] {
 }
 
 export function useCachedFountainsData(): UseCachedDataReturn {
-  const [featuresByCategory, setFeaturesByCategory] = useState<Record<string, FeatureProps[]>>({});
+  const [records, setRecords] = useState<Partial<Record<CategoryKey, CacheData>>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cacheTimestamp, setCacheTimestamp] = useState<number | null>(null);
-  const [hasCachedData, setHasCachedData] = useState(false);
   const [activeCategories, setActiveCategories] = useState<Set<CategoryKey>>(
     new Set(DEFAULT_ACTIVE_CATEGORIES)
   );
-  const fetchingRef = useRef<Set<string>>(new Set());
+  const [selectionLoaded, setSelectionLoaded] = useState(false);
+  const requests = useRef(new Map<CategoryKey, Promise<CacheData>>());
 
-  const cacheAge = cacheTimestamp ? Date.now() - cacheTimestamp : null;
+  const activeRecords = useMemo(() => Array.from(activeCategories).map((key) => records[key]), [activeCategories, records]);
+  const features = useMemo(() => activeRecords.flatMap((record) => record?.data ?? []), [activeRecords]);
+  const timestamps = activeRecords.flatMap((record) => record ? [record.timestamp] : []);
+  const cacheAge = timestamps.length ? Date.now() - Math.min(...timestamps) : null;
+  const hasCachedData = features.length > 0;
   const isStale = cacheAge !== null && cacheAge > CACHE_MAX_AGE;
 
-  // Merged features from all active categories
-  const features: FeatureProps[] = Array.from(activeCategories).flatMap(
-    (key) => featuresByCategory[key] ?? []
-  );
-
-  // Load saved category selection
   useEffect(() => {
+    let mounted = true;
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(SELECTION_KEY);
-        if (saved) {
-          const parsed: CategoryKey[] = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setActiveCategories(new Set(parsed));
-          }
+        const raw = await AsyncStorage.getItem(SELECTION_KEY);
+        const saved: unknown = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(saved)) {
+          const valid = saved.filter((key): key is CategoryKey =>
+            typeof key === 'string' && Object.prototype.hasOwnProperty.call(CATEGORIES, key)
+              && CATEGORIES[key as CategoryKey].enabled
+          );
+          if (mounted && valid.length) setActiveCategories(new Set(valid));
         }
       } catch {}
+      finally { if (mounted) setSelectionLoaded(true); }
     })();
+    return () => { mounted = false; };
   }, []);
 
-  // Persist category selection
-  const persistSelection = useCallback(async (cats: Set<CategoryKey>) => {
-    try {
-      await AsyncStorage.setItem(SELECTION_KEY, JSON.stringify(Array.from(cats)));
-    } catch {}
-  }, []);
+  useEffect(() => {
+    if (selectionLoaded) {
+      AsyncStorage.setItem(SELECTION_KEY, JSON.stringify(Array.from(activeCategories))).catch(() => {});
+    }
+  }, [activeCategories, selectionLoaded]);
 
   const toggleCategory = useCallback((key: CategoryKey) => {
-    setActiveCategories((prev) => {
-      const next = new Set(prev);
+    setActiveCategories((previous) => {
+      const next = new Set(previous);
       if (next.has(key)) {
-        // Don't allow deselecting all
-        if (next.size <= 1) return prev;
+        if (next.size === 1) return previous;
         next.delete(key);
       } else {
         next.add(key);
       }
-      persistSelection(next);
       return next;
     });
-  }, [persistSelection]);
+  }, []);
 
-  // Load cache for a single category
-  const loadCategoryCache = useCallback(async (key: CategoryKey): Promise<FeatureProps[] | null> => {
-    try {
-      const raw = await AsyncStorage.getItem(`${CACHE_KEY_PREFIX}${key}`);
-      if (raw) {
-        const parsed: CacheData = JSON.parse(raw);
-        setCacheTimestamp((prev) => prev ? Math.min(prev, parsed.timestamp) : parsed.timestamp);
-        setHasCachedData(true);
-        return parsed.data;
+  // Share promises between refreshes and category changes so no result is lost.
+  const fetchCategory = useCallback((key: CategoryKey): Promise<CacheData> => {
+    const pending = requests.current.get(key);
+    if (pending) return pending;
+    const request = (async () => {
+      const cat = CATEGORIES[key];
+      const response = await fetchWithTimeout(cat.wfsUrl);
+      const geo = await response.json();
+      if (geo?.type !== 'FeatureCollection' || !Array.isArray(geo.features)) {
+        throw new Error('Invalid amenity response');
       }
-    } catch {}
-    return null;
+      const record = { data: mapCollection(geo, cat), timestamp: Date.now() };
+      // Storage failure must not discard a successful network response.
+      await AsyncStorage.setItem(CACHE_KEY_PREFIX + key, JSON.stringify(record)).catch(() => {});
+      return record;
+    })().finally(() => { requests.current.delete(key); });
+    requests.current.set(key, request);
+    return request;
   }, []);
 
-  // Save cache for a single category
-  const saveCategoryCache = useCallback(async (key: CategoryKey, data: FeatureProps[]) => {
-    try {
-      const cacheData: CacheData = { data, timestamp: Date.now() };
-      await AsyncStorage.setItem(`${CACHE_KEY_PREFIX}${key}`, JSON.stringify(cacheData));
-      setCacheTimestamp(cacheData.timestamp);
-      setHasCachedData(data.length > 0);
-    } catch {}
-  }, []);
-
-  // Fetch a single category from WFS
-  const fetchCategory = useCallback(async (key: CategoryKey): Promise<FeatureProps[]> => {
-    const cat = CATEGORIES[key];
-    if (!cat?.enabled) return [];
-    const res = await fetchWithTimeout(cat.wfsUrl);
-    const geo = await res.json();
-    return mapCollection(geo, cat);
-  }, []);
-
-  // Fetch and cache all active categories
-  const fetchActiveCategories = useCallback(async () => {
+  const fetchActive = useCallback(async () => {
     const keys = Array.from(activeCategories);
-    const results = await Promise.allSettled(
-      keys.map(async (key) => {
-        // Skip keys already being fetched — don't overwrite with empty data
-        if (fetchingRef.current.has(key)) return null;
-        fetchingRef.current.add(key);
-        try {
-          const data = await fetchCategory(key);
-          await saveCategoryCache(key, data);
-          return { key, data };
-        } finally {
-          fetchingRef.current.delete(key);
-        }
-      })
-    );
+    const results = await Promise.allSettled(keys.map(fetchCategory));
+    const updates: Partial<Record<CategoryKey, CacheData>> = {};
+    const failed: string[] = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') updates[keys[index]] = result.value;
+      else failed.push(CATEGORIES[keys[index]].label);
+    });
+    return { updates, error: failed.length ? 'Could not refresh: ' + failed.join(', ') + '. Cached results are kept.' : null };
+  }, [activeCategories, fetchCategory]);
 
-    const updated: Record<string, FeatureProps[]> = {};
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        updated[result.value.key] = result.value.data;
-      }
-    }
-    return updated;
-  }, [activeCategories, fetchCategory, saveCategoryCache]);
-
-  // Refresh all active categories
   const refresh = useCallback(async () => {
-    try {
-      setError(null);
-      const updated = await fetchActiveCategories();
-      setFeaturesByCategory((prev) => ({ ...prev, ...updated }));
-    } catch {
-      setError('Failed to fetch data');
-      throw new Error('Failed to fetch data');
-    }
-  }, [fetchActiveCategories]);
+    setError(null);
+    const result = await fetchActive();
+    setRecords((previous) => ({ ...previous, ...result.updates }));
+    setError(result.error);
+  }, [fetchActive]);
 
-  // When active categories change, load cached + fetch fresh
   useEffect(() => {
-    let isMounted = true;
-
+    if (!selectionLoaded) return;
+    let mounted = true;
+    setLoading(true);
+    setError(null);
     (async () => {
-      try {
-        // Load from cache first for each active category
-        const keys = Array.from(activeCategories);
-        const cached: Record<string, FeatureProps[]> = {};
-        let anyCached = false;
-
-        await Promise.all(
-          keys.map(async (key) => {
-            // Skip if we already have data for this category
-            if (featuresByCategory[key]?.length) {
-              cached[key] = featuresByCategory[key];
-              anyCached = true;
-              return;
-            }
-            const data = await loadCategoryCache(key);
-            if (data) {
-              cached[key] = data;
-              anyCached = true;
-            }
-          })
-        );
-
-        if (isMounted && Object.keys(cached).length > 0) {
-          setFeaturesByCategory((prev) => ({ ...prev, ...cached }));
-          setLoading(false);
-        }
-
-        // Fetch fresh data
+      const cached: Partial<Record<CategoryKey, CacheData>> = {};
+      await Promise.all(Array.from(activeCategories).map(async (key) => {
         try {
-          const fresh = await fetchActiveCategories();
-          if (isMounted) {
-            setFeaturesByCategory((prev) => ({ ...prev, ...fresh }));
+          const raw = await AsyncStorage.getItem(CACHE_KEY_PREFIX + key);
+          const record = raw ? JSON.parse(raw) : null;
+          if (Array.isArray(record?.data) && Number.isFinite(record?.timestamp)
+            && record.data.every((item: FeatureProps) => typeof item?.id === 'string'
+              && Array.isArray(item.coordinates) && item.coordinates.length === 2
+              && item.coordinates.every(Number.isFinite))) {
+            cached[key] = record;
           }
-        } catch {
-          if (!anyCached && isMounted) {
-            setError('Failed to load data');
-          }
-        }
-      } catch {
-        if (isMounted) setError('Failed to load data');
-      } finally {
-        if (isMounted) setLoading(false);
+        } catch {}
+      }));
+      if (!mounted) return;
+      setRecords((previous) => ({ ...cached, ...previous }));
+      if (Object.values(cached).some((record) => record.data.length)) setLoading(false);
+      const result = await fetchActive();
+      if (mounted) {
+        setRecords((previous) => ({ ...previous, ...result.updates }));
+        setError(result.error);
+        setLoading(false);
       }
     })();
+    return () => { mounted = false; };
+  }, [activeCategories, selectionLoaded, fetchActive]);
 
-    return () => { isMounted = false; };
-    // Only re-fetch when activeCategories changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategories]);
-
-  return {
-    features,
-    loading,
-    error,
-    cacheAge,
-    isStale,
-    hasCachedData,
-    activeCategories,
-    toggleCategory,
-    refresh,
-  };
+  return { features, loading, error, cacheAge, isStale, hasCachedData, activeCategories, toggleCategory, refresh };
 }

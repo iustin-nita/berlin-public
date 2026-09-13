@@ -1,9 +1,11 @@
 import React from 'react';
-import { Keyboard, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { toast } from 'sonner-native';
 import { Feather } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { selectionFeedback } from '../../../utils/haptics';
 import { useTheme } from '../../../hooks/useTheme';
+import { isInBerlin } from '../../../utils/location';
 
 type SearchBarProps = {
   onResult: (coords: [number, number]) => void;
@@ -20,19 +22,30 @@ export function SearchBar({ onResult }: SearchBarProps) {
 
     setSearching(true);
     try {
-      // Append "Berlin" to bias results
-      const searchQuery = trimmed.toLowerCase().includes('berlin')
-        ? trimmed
-        : `${trimmed}, Berlin`;
+      if (Platform.OS === 'android') {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status !== 'granted') {
+          toast.error('Search needs location access', { description: 'Enable location in Settings, or browse the map and categories.' });
+          return;
+        }
+      }
+      // Include the country: Apple's geocoder can otherwise return no result
+      // even for common Berlin addresses such as Alexanderplatz.
+      const searchQuery = /(?:^|[\s,])berlin(?:$|[\s,])/i.test(trimmed)
+        ? `${trimmed}, Germany`
+        : `${trimmed}, Berlin, Germany`;
       const results = await Location.geocodeAsync(searchQuery);
-      if (results.length > 0) {
-        const { longitude, latitude } = results[0];
+      const result = results.find(({ latitude, longitude }) => isInBerlin(latitude, longitude));
+      if (result) {
+        const { longitude, latitude } = result;
         selectionFeedback();
         onResult([longitude, latitude]);
         Keyboard.dismiss();
+      } else {
+        toast.error('No address found', { description: 'Try a street name or postcode in Berlin.' });
       }
     } catch {
-      // Geocoding failed silently
+      toast.error('Search unavailable', { description: 'Check your connection and try again.' });
     } finally {
       setSearching(false);
     }
@@ -56,7 +69,9 @@ export function SearchBar({ onResult }: SearchBarProps) {
           returnKeyType="search"
           autoCorrect={false}
           autoCapitalize="words"
+          accessibilityLabel="Search address in Berlin"
         />
+        {searching ? <ActivityIndicator size="small" accessibilityLabel="Searching" /> : null}
         {query.length > 0 ? (
           <Pressable onPress={handleClear} accessibilityLabel="Clear search" style={styles.clearButton}>
             <Feather name="x" size={16} color="#94a3b8" />
@@ -72,7 +87,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 12,
-    right: 12,
+    right: 60,
     zIndex: 12,
   },
   bar: {

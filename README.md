@@ -6,7 +6,7 @@
 
 **Find public fountains, toilets & essential amenities across Berlin.**
 
-Offline-first · community-verified · free & open-source.
+Cached amenity details · community reports · free & open-source.
 
 <a href="https://play.google.com/store/apps/details?id=com.blobstudio.berlinpublic">
   <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="56" />
@@ -15,8 +15,8 @@ Offline-first · community-verified · free & open-source.
 <br/>
 
 <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License" />
-<img src="https://img.shields.io/badge/Expo-SDK%2055-000020.svg?logo=expo&logoColor=white" alt="Expo SDK 55" />
-<img src="https://img.shields.io/badge/React%20Native-0.83-61DAFB.svg?logo=react&logoColor=white" alt="React Native 0.83" />
+<img src="https://img.shields.io/badge/Expo-SDK%2057-000020.svg?logo=expo&logoColor=white" alt="Expo SDK 57" />
+<img src="https://img.shields.io/badge/React%20Native-0.86-61DAFB.svg?logo=react&logoColor=white" alt="React Native 0.86" />
 <img src="https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white" alt="TypeScript" />
 <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome" />
 
@@ -48,7 +48,7 @@ Nine categories of public infrastructure, all on one map:
 
 Plus everything you need to actually use them:
 
-- 📍 **Offline browsing** — amenity data is cached after the first sync; the map keeps working with no signal
+- 📍 **Offline browsing** — downloaded amenity details and favorites remain available; map tiles, address search, and voting require internet
 - 🔎 **Filter & search** — toggle categories and search by address
 - 📋 **Rich details** — hours, fees, accessibility, baby-changing, operator, season, official links
 - 👍 **Community status** — vote a toilet open/closed or a fountain flowing/dry, and see how fresh the info is
@@ -57,7 +57,7 @@ Plus everything you need to actually use them:
 
 ## Tech Stack
 
-- **React Native** with **Expo SDK 55** (New Architecture / Fabric)
+- **React Native** with **Expo SDK 57** (New Architecture / Fabric)
 - **MapLibre Native** + **[OpenFreeMap](https://openfreemap.org/)** vector tiles — free, keyless, OpenStreetMap-based
 - **React Navigation** v7 (native-stack + bottom-tabs, static config)
 - **TypeScript** (strict)
@@ -84,7 +84,7 @@ Plus everything you need to actually use them:
    cp .env.example .env
    ```
    Maps need **no key** (MapLibre + OpenFreeMap). Supabase credentials are optional —
-   without them, community features fall back to local storage. See
+   without them, community reporting is unavailable. Production builds must use the configured EAS environment. See
    [`.env.example`](.env.example) for what each variable does.
 
 3. Start the dev server:
@@ -121,4 +121,4 @@ npm test       # unit tests
 ## Contact
 
 - **Email:** contact@blobstudio.dev
-- **Privacy Policy:** https://iustin-nita.github.io/berlin-privacy-policy/PRIVACY_POLICY.md
+- **Privacy Policy:** https://github.com/iustin-nita/berlin-public/blob/main/PRIVACY_POLICY.md

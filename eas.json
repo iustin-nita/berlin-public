@@ -4,6 +4,13 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true,
+        "image": "latest"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -16,6 +23,10 @@
       "prebuildCommand": "npx expo prebuild --clean",
       "android": {
         "buildType": "app-bundle"
+      },
+      "ios": {
+        "image": "latest",
+        "credentialsSource": "local"
       }
     }
   },

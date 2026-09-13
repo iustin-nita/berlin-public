@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FlatList, Pressable, StyleSheet, View, Text as RNText } from 'react-native';
 import { Text } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
@@ -21,12 +22,26 @@ export function Favorites() {
   const [sortBy, setSortBy] = React.useState<SortOption>('recent');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
   const [userLocation, setUserLocation] = React.useState<[number, number] | null>(null);
+  const [sortLoaded, setSortLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    AsyncStorage.getItem('favorites:sort:v1').then((raw) => {
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved.by === 'distance' || saved.by === 'recent') setSortBy(saved.by);
+      if (saved.order === 'asc' || saved.order === 'desc') setSortOrder(saved.order);
+    }).catch(() => {}).finally(() => setSortLoaded(true));
+  }, []);
+
+  React.useEffect(() => {
+    if (sortLoaded) AsyncStorage.setItem('favorites:sort:v1', JSON.stringify({ by: sortBy, order: sortOrder })).catch(() => {});
+  }, [sortBy, sortOrder, sortLoaded]);
 
   // Get user location for distance sorting
   React.useEffect(() => {
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.getForegroundPermissionsAsync();
         if (status === 'granted') {
           const loc = await Location.getCurrentPositionAsync({});
           setUserLocation([loc.coords.longitude, loc.coords.latitude]);
@@ -97,7 +112,9 @@ export function Favorites() {
         return (
           <Pressable
             key={option.value}
-            style={[styles.sortButton, active && styles.sortButtonActive]}
+            style={[styles.sortButton, { backgroundColor: colors.surfaceSecondary }, active && styles.sortButtonActive]}
+            disabled={option.value === 'distance' && !userLocation}
+            accessibilityState={{ selected: active, disabled: option.value === 'distance' && !userLocation }}
             onPress={() => handleSortPress(option.value)}
             accessibilityRole="button"
           >
@@ -122,7 +139,7 @@ export function Favorites() {
         );
       })}
     </View>
-  ), [sortBy, sortOrder, handleSortPress]);
+  ), [sortBy, sortOrder, handleSortPress, colors, userLocation]);
 
   const renderItem = ({ item }: { item: FavoriteItem & { distance: number; distanceText?: string | null } }) => {
     const cat = getCategoryByKey(item.type ?? 'drinking');
@@ -144,14 +161,14 @@ export function Favorites() {
             <View style={styles.datasetBadge}>
               <CategoryIcon categoryKey={typeInfo.key} size={18} color={typeInfo.color} />
             </View>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, { flex: 1, color: colors.text }]} numberOfLines={2}>
               {item.title}
             </Text>
           </View>
           {item.description ? (
-            <RNText style={styles.subtitle}>{item.description}</RNText>
+            <RNText style={[styles.subtitle, { color: colors.textSecondary }]}>{item.description}</RNText>
           ) : null}
-          <RNText style={styles.meta}>{typeInfo.label}</RNText>
+          <RNText style={[styles.meta, { color: colors.textSecondary }]}>{typeInfo.label}</RNText>
           {item.distanceText ? (
             <View style={styles.distanceRow}>
               <Feather name="navigation" size={14} color="#1a56db" style={{ marginRight: 4 }} />
@@ -203,10 +220,10 @@ export function Favorites() {
       data={sortedFavorites}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: colors.background }}
       contentContainerStyle={styles.list}
       ListHeaderComponent={renderSortControls}
-      ListHeaderComponentStyle={styles.sortHeader}
+      ListHeaderComponentStyle={[styles.sortHeader, { backgroundColor: colors.background }]}
       stickyHeaderIndices={[0]}
     />
   );

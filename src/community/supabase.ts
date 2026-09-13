@@ -5,8 +5,8 @@ const supabaseUrl: string | undefined = (Constants.expoConfig?.extra as any)?.su
 const supabaseAnonKey: string | undefined = (Constants.expoConfig?.extra as any)?.supabaseAnonKey;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  // Keep a soft error to allow local (AsyncStorage) fallback
-  if (__DEV__) console.warn('[Supabase] Missing supabaseUrl/supabaseAnonKey in app.config.ts extra. Falling back to local store.');
+  // Keep the map usable while community reporting is unavailable.
+  if (__DEV__) console.warn('[Supabase] Missing supabaseUrl/supabaseAnonKey in app.config.ts extra. Community reporting is unavailable.');
 }
 
 export const supabase = (supabaseUrl && supabaseAnonKey)

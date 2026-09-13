@@ -1,10 +1,33 @@
-# EAS Build ignore file
-# By default, EAS respects .gitignore
-# This file explicitly includes android/ for local builds
-
-# Still ignore common dev files
+# Native projects are generated from app.config.ts on EAS.
 node_modules/
 .expo/
 .git/
 *.log
 .DS_Store
+ios/
+android/
+.android.generated/
+.ios.generated/
+.venv/
+dist/
+tools/
+public/
+.env
+.env*.local
+.claude/
+.asc/
+credentials.json
+*.p8
+*.p12
+*.key
+*.pem
+*.jks
+*.mobileprovision
+*.aab
+*.apk
+*.ipa
+*.tar.gz
+build-*/
+docs/screenshots/
+
+metadata/screenshots/

@@ -10,7 +10,7 @@ import {
 } from '@maplibre/maplibre-react-native';
 import * as Location from 'expo-location';
 import React from 'react';
-import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Linking, Pressable, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
 import { useFocusEffect } from '@react-navigation/native';
@@ -62,6 +62,7 @@ export function MapScreen() {
   // Render map layers only after the style is fully loaded to avoid Android dev-reload native view tag errors
   const [styleLoaded, setStyleLoaded] = React.useState(false);
   const [mapLoadFailed, setMapLoadFailed] = React.useState(false);
+  const [mapAttempt, setMapAttempt] = React.useState(0);
   const bottomSheetRef = React.useRef<BottomSheet>(null);
 
   const cameraRef = React.useRef<CameraRef>(null);
@@ -137,7 +138,7 @@ export function MapScreen() {
     if (!hasInitiallyCentered.current && userLocation && styleLoaded && cameraRef.current && !pendingFeature && !hasHandledPendingFeature.current) {
       try {
         cameraRef.current.flyTo({
-          center: userLocation,
+          center: isInBerlin(userLocation[1], userLocation[0]) ? userLocation : BERLIN_CENTER,
           zoom: 14,
           duration: 800,
         });
@@ -154,9 +155,6 @@ export function MapScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      if (hasInitiallyCentered.current) {
-        hasInitiallyCentered.current = false;
-      }
       const timer = setTimeout(performInitialZoom, 800);
       return () => { clearTimeout(timer); };
     }, [performInitialZoom])
@@ -172,7 +170,8 @@ export function MapScreen() {
 
   // Handle navigation from Favorites to Map: fly to feature and select it
   React.useEffect(() => {
-    if (pendingFeature && styleLoaded && cameraRef.current && features.length > 0) {
+    if (pendingFeature && styleLoaded && cameraRef.current) {
+      setViewMode('map');
       hasHandledPendingFeature.current = true;
       hasInitiallyCentered.current = true;
 
@@ -180,10 +179,7 @@ export function MapScreen() {
       const featureType = pendingFeature.type as CategoryKey | undefined;
       if (featureType && !activeCategories.has(featureType)) {
         toggleCategory(featureType);
-        setTimeout(() => {
-          const found = features.find((f) => f.id === pendingFeature.id);
-          setSelected(found || pendingFeature);
-        }, 50);
+        setSelected(pendingFeature);
       } else {
         const found = features.find((f) => f.id === pendingFeature.id);
         setSelected(found || pendingFeature);
@@ -241,7 +237,13 @@ export function MapScreen() {
       if (!styleLoaded) return;
       if (!hasLocationPermission) {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') return;
+        if (status !== 'granted') {
+          Alert.alert('Location access is off', 'Enable location in Settings to find amenities near you. You can still browse Berlin without it.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => { Linking.openSettings(); } },
+          ]);
+          return;
+        }
         setHasLocationPermission(true);
       }
       let target: [number, number] | null = userLocation;
@@ -263,6 +265,9 @@ export function MapScreen() {
 
   // Search result handler: fly camera to geocoded coords
   const handleSearchResult = React.useCallback((coords: [number, number]) => {
+    setViewMode('map');
+    setSelected(null);
+    setCandidates([]);
     cameraRef.current?.flyTo({
       center: coords,
       zoom: 15,
@@ -419,9 +424,10 @@ export function MapScreen() {
   return (
     <View style={styles.container}>
       <MapView
+        key={mapAttempt}
         style={styles.map}
         mapStyle={colors.mapStyle}
-        onDidFinishLoadingMap={() => {
+        onDidFinishLoadingStyle={() => {
           setStyleLoaded(true);
           setMapLoadFailed(false);
         }}
@@ -449,13 +455,13 @@ export function MapScreen() {
         logo={false}
         scaleBar={false}
       >
+        <Camera
+          ref={cameraRef}
+          initialViewState={{ center: BERLIN_CENTER, zoom: 12 }}
+        />
         {styleLoaded ? (
           <>
             <Images images={markerImages} />
-            <Camera
-              ref={cameraRef}
-              initialViewState={{ center: BERLIN_CENTER, zoom: 12 }}
-            />
             {hasLocationPermission ? <UserLocation /> : null}
 
             <GeoJSONSource
@@ -527,7 +533,7 @@ export function MapScreen() {
           </Text>
           <Text style={styles.stateText}>
             {mapLoadFailed
-              ? 'The map view could not finish loading. Check your connection and Mapbox configuration, then try again.'
+              ? 'Check your connection and try again. Saved amenities are also available in list view.'
               : !isOnline
               ? 'Connect once to download Berlin amenity data, then you can keep browsing cached results when offline.'
               : 'The amenity feed could not be loaded right now. You can try again in a moment.'}
@@ -535,7 +541,14 @@ export function MapScreen() {
           <View style={styles.stateActions}>
             <Pressable
               style={[styles.stateButton, styles.stateButtonPrimary]}
-              onPress={() => { refresh().catch(() => {}); }}
+              onPress={() => {
+                if (mapLoadFailed) {
+                  setStyleLoaded(false);
+                  setMapLoadFailed(false);
+                  setMapAttempt((attempt) => attempt + 1);
+                }
+                refresh().catch(() => {});
+              }}
               accessibilityRole="button"
               accessibilityLabel="Retry loading amenity data"
             >
@@ -559,13 +572,14 @@ export function MapScreen() {
 
       <SearchBar onResult={handleSearchResult} />
 
-      <StatusBanner
+      {!selected && <StatusBanner
         isOnline={isOnline}
         cacheAge={cacheAge}
         isStale={isStale}
         isOutOfBounds={isOutOfBounds}
+        error={error}
         onRefresh={() => { refresh().catch(() => {}); }}
-      />
+      />}
 
       <CategoryBar activeCategories={activeCategories} onToggle={toggleCategory} />
       <MapScaleBar
@@ -590,7 +604,7 @@ export function MapScreen() {
 
       {/* Map/List toggle */}
       <Pressable
-        style={styles.viewToggle}
+        style={[styles.viewToggle, { backgroundColor: colors.chipBg }]}
         onPress={handleToggleView}
         accessibilityRole="button"
         accessibilityLabel={viewMode === 'map' ? 'Switch to list view' : 'Switch to map view'}
@@ -605,6 +619,7 @@ export function MapScreen() {
             data={sortedFeatures}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
+            ListEmptyComponent={<Text style={{ color: colors.textSecondary, padding: 16 }}>{loading ? 'Loading amenities…' : error || 'No amenities found for these categories.'}</Text>}
             renderItem={({ item }) => (
               <ListViewItem
                 item={item}

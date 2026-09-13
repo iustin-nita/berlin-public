@@ -8,6 +8,7 @@ type StatusBannerProps = {
   cacheAge: number | null;
   isStale: boolean;
   isOutOfBounds: boolean;
+  error?: string | null;
   onRefresh?: () => void;
 };
 
@@ -24,13 +25,13 @@ function formatCacheAge(ageMs: number | null): string {
   return 'just now';
 }
 
-export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, onRefresh }: StatusBannerProps) {
+export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, error, onRefresh }: StatusBannerProps) {
   const { colors } = useTheme();
   const showOffline = !isOnline;
   const showStale = isOnline && isStale;
   const showOutOfBounds = isOutOfBounds;
 
-  if (!showOffline && !showStale && !showOutOfBounds) return null;
+  if (!showOffline && !showStale && !showOutOfBounds && !error) return null;
 
   let icon: React.ReactNode;
   let title: string;
@@ -41,11 +42,17 @@ export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, onRef
   if (showOffline) {
     icon = <Feather name="wifi-off" size={18} color="#dc2626" />;
     title = "You're offline";
-    subtitle = `Using cached data · Updated ${formatCacheAge(cacheAge)}`;
+    subtitle = cacheAge === null ? 'Connect to download amenities for offline browsing' : `Cached amenities · Updated ${formatCacheAge(cacheAge)}`;
     bgColor = colors.statusBannerOfflineBg;
     if (showOutOfBounds) {
       subtitle += ' · Outside Berlin';
     }
+  } else if (error) {
+    icon = <Feather name="alert-circle" size={18} color="#d97706" />;
+    title = 'Some amenities could not be updated';
+    subtitle = error;
+    bgColor = colors.statusBannerBg;
+    canRefresh = true;
   } else if (showStale) {
     icon = <Feather name="clock" size={18} color="#d97706" />;
     title = 'Data may be outdated';
@@ -67,8 +74,8 @@ export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, onRef
       <View style={styles.content}>
         {icon}
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
         </View>
         {canRefresh && onRefresh ? (
           <Pressable

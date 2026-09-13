@@ -1,0 +1,6 @@
+{
+  "description": "Find useful public places across Berlin, whether you live here or are visiting.\n\nExplore nine categories on one map: drinking fountains, public toilets, decorative fountains, playgrounds, BBQ areas, bike repair stations, EV charging points, bathing spots and cool spaces.\n\n• Filter categories and search for an address in Berlin.\n• Browse amenities on the map or in a list.\n• See available details such as opening hours, fees and accessibility.\n• Save favorites and sort them by distance or when you added them.\n• Open walking directions in your maps app, or share a location.\n• Report an amenity's current status and view community reports.\n\nAmenity data is cached after download so you can browse saved results and favorites offline. Map tiles, address search, directions and community updates may require an internet connection.\n\nBerlin Public is free, with no ads and no account required. Location access is optional. Data comes from Berlin Open Data, with maps by OpenFreeMap and OpenStreetMap. Availability can change; check local signs and official information when planning a visit.",
+  "keywords": "fountains,restroom,playground,bike,charging,bbq,map,walking,travel,amenities,accessible",
+  "supportUrl": "https://github.com/iustin-nita/berlin-public#contact",
+  "marketingUrl": "https://github.com/iustin-nita/berlin-public"
+}

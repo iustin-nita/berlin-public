@@ -5,6 +5,7 @@ import { FeatureProps } from '../../../types/api';
 import { CategoryIcon } from '../../../components/CategoryIcon';
 import { getCategoryByKey } from '../../../constants/categories';
 import { haversineDistance, formatDistance, walkingEta } from './utils';
+import { useTheme } from '../../../hooks/useTheme';
 
 type ListViewItemProps = {
   item: FeatureProps;
@@ -13,6 +14,7 @@ type ListViewItemProps = {
 };
 
 export function ListViewItem({ item, userLocation, onPress }: ListViewItemProps) {
+  const { colors } = useTheme();
   const cat = getCategoryByKey(item.type ?? 'drinking');
   const distanceText = React.useMemo(() => {
     if (!userLocation) return null;
@@ -22,7 +24,7 @@ export function ListViewItem({ item, userLocation, onPress }: ListViewItemProps)
 
   return (
     <Pressable
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.card }]}
       onPress={() => onPress(item)}
       accessibilityRole="button"
       accessibilityLabel={`View ${item.title} on map`}
@@ -31,9 +33,9 @@ export function ListViewItem({ item, userLocation, onPress }: ListViewItemProps)
         <CategoryIcon categoryKey={item.type ?? 'drinking'} size={18} color={cat?.color} />
       </View>
       <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
         {item.description ? (
-          <Text style={styles.subtitle} numberOfLines={1}>{item.description}</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>{item.description}</Text>
         ) : null}
         <Text style={styles.category}>{cat?.label ?? 'Location'}</Text>
       </View>

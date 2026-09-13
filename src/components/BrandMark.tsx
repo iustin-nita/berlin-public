@@ -10,6 +10,8 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { useTheme } from '../hooks/useTheme';
+
 const logoSource = require('../../assets/logo.png');
 
 type BrandMarkProps = {
@@ -29,6 +31,7 @@ export function BrandMark({
   imageStyle,
   direction = 'row',
 }: BrandMarkProps) {
+  const { colors, isDark } = useTheme();
   const isColumn = direction === 'column';
   return (
     <View
@@ -43,6 +46,7 @@ export function BrandMark({
         style={[
           styles.logo,
           { width: imageSize, height: imageSize },
+          isDark && { backgroundColor: '#ffffff', borderRadius: imageSize / 5 },
           imageStyle,
         ]}
       />
@@ -51,6 +55,7 @@ export function BrandMark({
           styles.text,
           isColumn ? { marginTop: spacing } : { marginLeft: spacing },
           textStyle,
+          { color: colors.text },
         ]}
       >
         BERLIN PUBLIC

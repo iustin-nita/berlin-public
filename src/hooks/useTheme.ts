@@ -35,9 +35,7 @@ const darkColors = {
   statusBannerBg: '#422006',
   statusBannerOfflineBg: '#450a0a',
   statusBannerOutOfBoundsBg: '#422006',
-  // TODO: OpenFreeMap has no official dark style yet — using minimal 'positron'
-  // as a placeholder. Replace with a custom dark style (Maputnik export) later.
-  mapStyle: 'https://tiles.openfreemap.org/styles/positron',
+  mapStyle: 'https://tiles.openfreemap.org/styles/dark',
   shadow: '#000000',
 } as const;
 

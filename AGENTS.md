@@ -10,7 +10,7 @@
 - `npm install` — sync dependencies before running anything else.
 - `npm start` — launch the Expo dev server with the custom dev client.
 - `npm run ios` / `npm run android` — build and install the native dev client on the current simulator/device. Use after native dependency changes.
-- `npm run web` — quick smoke test in a browser; Mapbox features are native-only, so expect reduced functionality.
+- `npm run web` — quick smoke test in a browser; MapLibre features are native-only, so expect reduced functionality.
 - For release artifacts, use `npm run build:apk` or `npm run build:aab`; both require a configured native toolchain.
 
 ## Coding Style & Naming Conventions
@@ -20,7 +20,7 @@
 - Run `tsc --noEmit` before committing when you touch types to catch regressions early.
 
 ## Testing Guidelines
-- Automated tests are not yet configured; perform manual verification covering map rendering, dataset toggles, favorites navigation, onboarding flow, and offline cache behavior.
+- Run `npm test -- --runInBand` (Jest / jest-expo); also perform manual verification covering map rendering, dataset toggles, favorites navigation, onboarding flow, and offline cache behavior.
 - When adding new logic, include a checklist in the PR description describing manual steps taken (device, dataset toggles, offline mode, etc.).
 - If you introduce a testing framework (e.g., Jest, Detox), add scripts to `package.json` and document usage here.
 
@@ -30,6 +30,6 @@
 - PRs should include: purpose summary, screenshots or screen recordings for UI changes, manual test checklist, and any follow-up tasks. Link to updated docs (`docs/`) when relevant.
 - Request review from owners of affected modules (`navigation`, `favorites`, `map`) and ensure CI/Expo preview links are attached if available.
 
-## Mapbox & Configuration Tips
-- Mapbox tokens are injected via the Expo config plugin; rotate them in secure storage and update `app.config.ts`.
+## MapLibre & Configuration Tips
+- MapLibre uses keyless OpenFreeMap tiles. Supabase URL and anon key come from local env or the EAS environment; never commit credentials.
 - The app relies on native dev builds. When adjusting native modules or permissions, increment config versions to trigger regeneration and document the change in `docs/implementation-plan.md`.

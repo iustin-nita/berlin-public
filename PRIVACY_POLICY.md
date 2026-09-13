@@ -1,76 +1,35 @@
 # Privacy Policy for Berlin Public
 
-**Last updated:** October 25, 2025
+**Last updated:** September 13, 2026
 
-## Overview
+Berlin Public is provided by Iustin Nita (Blob Studio). You can contact us at contact@blobstudio.dev about privacy, access to your data, or deletion requests.
 
-Berlin Public ("we", "our", or "us") operates the Berlin Public mobile application. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our app.
+## Location and search
 
-## Information We Collect
+Location access is optional and is requested while you use the app. Your location is used on your device to position the map and calculate straight-line distances to amenities. The app does not send your live location to our community reporting database. You can deny or revoke location access in your device settings and continue browsing Berlin's amenities.
 
-### Location Data
-- We collect your device's location **only when you use the app** to show nearby fountains, restrooms, and other public amenities
-- Location data is primarily processed **locally on your device** for nearby results and directions
-- We use your location to calculate distances and provide navigation features
+Address searches use your device's geocoding service, which may send your search to Apple or Google. Loading a map requests tiles for the area you view from OpenFreeMap. When you open directions, the destination is passed to your chosen navigation app; that app handles its own location permissions and data processing.
 
-### Usage Data
-- The app works primarily **offline** using locally stored data
-- We do not track your usage patterns or browsing behavior
-- No analytics or tracking services are implemented
+## Community reports
 
-### Community Contributions
-- When you vote on amenities (working/not working), your vote is submitted anonymously
-- Anonymous vote submissions may include the selected amenity identifier and its map coordinates
-- No account, name, or contact information is associated with community votes
+No account is required. When you report an amenity as working or not working, the app sends the amenity's identifier and coordinates, your selected status, the submission time, and a randomly generated installation identifier to our Supabase database. This identifier lets a later report replace your previous report for the same amenity. It is not your advertising identifier, name, email address, or live location.
 
-## How We Use Your Data
+Community report data is used to calculate shared status summaries. Reports from the last 60 days contribute to the displayed summary; this display window does not automatically delete older database records. Uninstalling the app removes its local data but does not delete reports already submitted. Contact us for help with a deletion request; we may need information to identify your reports without collecting unnecessary personal data.
 
-We use your location data to:
-- Display nearby public amenities (fountains, restrooms, etc.)
-- Calculate walking distances
-- Provide directions to selected locations
+## Data stored on your device
 
-## Data Storage
+Favorites, filter and sort preferences, onboarding preferences, the installation identifier, and cached public amenity data are stored locally. Cached amenity data remains available after a successful download. Map tiles, address search, live refreshes, and community reports need connectivity. The app does not offer a complete offline map download.
 
-- Cached amenity data (fountain locations, restroom locations, etc.) is stored **locally on your device**
-- Your live device location is not stored on our servers by the app
-- The app can browse cached amenity data after the first successful sync, but map tiles and live refreshes require connectivity
+## Service providers
 
-## Third-Party Services
+The app connects to Berlin's public GIS services for amenity data, OpenFreeMap for map styles and tiles, and Supabase for community reports. These services receive network information such as your IP address when a request is made and may maintain operational logs under their own policies. External navigation apps and your device's geocoding provider process requests under their own policies.
 
-We use the following third-party services:
-- **Mapbox** - For map display and navigation features. Mapbox may collect location data. See [Mapbox Privacy Policy](https://www.mapbox.com/legal/privacy)
-- **Berlin public GIS data services** - Source of public amenity datasets used by the app
-- **Supabase** - Used for anonymous community status submissions when backend reporting is enabled
-- **OpenStreetMap / external map apps** - May be used indirectly when you open directions in supported navigation apps
+The app includes no advertising, analytics, or cross-app tracking SDK. We do not sell personal data.
 
-## Data Security
+## Your choices and rights
 
-- We implement appropriate security measures to protect your data
-- Since the app does not require user accounts and stores cached amenity data locally, the amount of personal data we handle is limited
+You can use the app without submitting reports, revoke location permission, remove favorites, and uninstall the app to remove local data. Depending on applicable law, you may request access, correction, deletion, restriction or portability of personal data, object to processing, and complain to a data protection authority. Contact contact@blobstudio.dev to make a request.
 
-## Children's Privacy
+## Changes
 
-Our app does not knowingly collect personal information from children under 13.
-
-## Changes to This Policy
-
-We may update this privacy policy from time to time. We will notify you of any changes by updating the "Last updated" date.
-
-## Your Rights
-
-You have the right to:
-- Deny location permissions (app functionality will be limited)
-- Delete the app and all locally stored data at any time
-
-## Contact Us
-
-If you have questions about this privacy policy, contact us at:
-- Email: contact@blobstudio.dev
-
-## Compliance
-
-This app complies with:
-- GDPR (General Data Protection Regulation) for EU users
-- Google Play Store policies
-- Apple App Store policies
+We will update the date on this page when this policy changes.
