@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,6 +39,13 @@ export function Settings() {
           value="Berlin Open Data"
           last
           onPress={() => toast('Data: Berlin Open Data (WFS)', { description: 'Amenity data © Geoportal Berlin' })}
+        />
+        <Row
+          colors={colors}
+          icon={<Feather name="shield" size={17} color={palette.blue} />}
+          label="Privacy policy"
+          last
+          onPress={() => Linking.openURL('https://github.com/iustin-nita/berlin-public/blob/main/PRIVACY_POLICY.md').catch(() => toast.error('Could not open privacy policy'))}
         />
       </Card>
 

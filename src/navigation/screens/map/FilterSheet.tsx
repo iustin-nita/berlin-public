@@ -40,7 +40,10 @@ export function FilterSheet({ visible, activeCategories, onToggle, setCategories
     <BottomSheet
       ref={ref}
       index={-1}
-      snapPoints={['64%']}
+      containerStyle={{ zIndex: 30 }}
+      snapPoints={['75%']}
+      enableDynamicSizing={false}
+      accessible={false}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       handleIndicatorStyle={[styles.handle, { backgroundColor: colors.hairline }]}
@@ -75,13 +78,13 @@ export function FilterSheet({ visible, activeCategories, onToggle, setCategories
                 <View style={[styles.iconBox, { backgroundColor: active ? cat.color : colors.surface, borderColor: active ? cat.color : colors.hairline }]}>
                   <CategoryIcon categoryKey={cat.key} size={19} color={active ? '#ffffff' : cat.color} />
                 </View>
-                <Text style={[styles.cardLabel, { color: colors.ink }]} numberOfLines={1}>{cat.label}</Text>
+                <Text style={[styles.cardLabel, { color: active ? '#0f172a' : colors.ink }]} numberOfLines={1}>{cat.label}</Text>
               </Pressable>
             );
           })}
         </View>
 
-        <Pressable onPress={onClose} style={[styles.cta, { backgroundColor: colors.ink }]}>
+        <Pressable onPress={onClose} style={[styles.cta, { backgroundColor: palette.blue }]}>
           <Text style={styles.ctaText}>
             Show {activeCategories.size} categor{activeCategories.size === 1 ? 'y' : 'ies'}
           </Text>

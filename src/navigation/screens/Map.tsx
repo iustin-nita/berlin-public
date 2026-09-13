@@ -585,7 +585,7 @@ export function MapScreen() {
         onOpenFilters={() => setFilterOpen(true)}
       />
 
-      {!selected && <StatusBanner
+      {!selected && !filterOpen && <StatusBanner
         isOnline={isOnline}
         cacheAge={cacheAge}
         isStale={isStale}

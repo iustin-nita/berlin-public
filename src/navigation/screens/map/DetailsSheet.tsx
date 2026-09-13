@@ -2,6 +2,7 @@ import React from 'react';
 import { Linking, Pressable, Share, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { toast } from 'sonner-native';
+import * as Clipboard from 'expo-clipboard';
 import { FeatureProps } from '../../../types/api';
 import { getSanitizedInfo, isTwentyFourSeven } from './utils';
 import { useFavorites } from '../../../favorites/FavoritesContext';
@@ -63,7 +64,6 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
     const payload = buildShareLink();
     if (!payload) return;
     try {
-      const Clipboard = await import('expo-clipboard');
       await Clipboard.setStringAsync(payload.url);
       toast.success('Link copied', { description: 'The location link has been copied to your clipboard.' });
     } catch {
@@ -126,6 +126,7 @@ export function DetailsSheet({ refInstance, selected, onClose, distanceInfo, isO
       enableDynamicSizing={false}
       accessible={false}
       index={-1}
+      containerStyle={{ zIndex: 20 }}
       enablePanDownToClose
       backgroundStyle={{ backgroundColor: colors.surface }}
       handleIndicatorStyle={styles.sheetHandle}

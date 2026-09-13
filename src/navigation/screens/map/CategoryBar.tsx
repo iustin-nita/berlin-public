@@ -26,7 +26,7 @@ export function CategoryBar({ activeCategories, onToggle, onOpenFilters }: Categ
         accessibilityRole="button"
         accessibilityLabel="Open filters"
         onPress={() => { lightImpact(); onOpenFilters(); }}
-        style={[styles.filtersChip, { backgroundColor: colors.ink }, shadow('chip', '#0f172a')]}
+        style={[styles.filtersChip, { backgroundColor: '#0f172a' }, shadow('chip', '#0f172a')]}
       >
         <Feather name="sliders" size={14} color="#ffffff" />
         <Text style={styles.filtersLabel}>Filters</Text>
