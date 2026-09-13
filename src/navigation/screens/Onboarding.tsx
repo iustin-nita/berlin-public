@@ -21,6 +21,7 @@ import { Feather } from '@expo/vector-icons';
 import { BrandMark } from '../../components/BrandMark';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { CATEGORY_LIST } from '../../constants/categories';
+import { palette, shadow } from '../../constants/tokens';
 import { useTheme } from '../../hooks/useTheme';
 
 const { width, height } = Dimensions.get('window');
@@ -80,7 +81,7 @@ function Dot({ index, scrollX }: DotProps) {
     const dotWidth = interpolate(
       scrollX.value,
       inputRange,
-      [8, 20, 8],
+      [7, 22, 7],
       Extrapolate.CLAMP
     );
 
@@ -151,16 +152,11 @@ export function Onboarding() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip</Text>
-      </TouchableOpacity>
-
-      <View style={styles.brandHeader}>
-        <BrandMark
-          imageSize={64}
-          spacing={14}
-          textStyle={styles.brandText}
-        />
+      <View style={styles.topRow}>
+        <BrandMark imageSize={26} spacing={8} textStyle={styles.brandText} />
+        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={styles.skipText}>Skip</Text>
+        </TouchableOpacity>
       </View>
 
       <Animated.ScrollView
@@ -177,7 +173,7 @@ export function Onboarding() {
           <View key={slide.id} style={styles.slide}>
             {slide.iconName ? (
               <View style={styles.iconContainer}>
-                <Feather name={slide.iconName} size={48} color="#1a56db" />
+                <Feather name={slide.iconName} size={52} color="#1a56db" />
               </View>
             ) : (
               <View style={styles.categoryPreview}>
@@ -225,27 +221,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  skipButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    zIndex: 10,
-    padding: 10,
-  },
-  brandHeader: {
-    paddingTop: 88,
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 24,
+    justifyContent: 'space-between',
+    paddingTop: 64,
+    paddingHorizontal: 22,
   },
   brandText: {
-    fontSize: 20,
-    letterSpacing: 2,
+    fontSize: 15,
+    letterSpacing: 1.6,
     color: '#0f172a',
   },
   skipText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#1a56db',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   scrollView: {
     flex: 1,
@@ -258,31 +249,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#f0f4ff',
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    backgroundColor: '#EFF4FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 44,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 27,
+    fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 16,
-    color: '#000',
+    marginBottom: 14,
+    letterSpacing: -0.6,
+    color: '#0F172A',
   },
   description: {
-    fontSize: 18,
+    fontSize: 16.5,
     textAlign: 'center',
-    color: '#666',
-    marginBottom: 12,
+    color: '#64748B',
+    marginBottom: 10,
+    lineHeight: 24,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: 'center',
-    color: '#999',
+    color: '#94A3B8',
+    lineHeight: 20,
   },
   categoryPreview: {
     flexDirection: 'row',
@@ -310,34 +304,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dot: {
-    height: 8,
+    height: 7,
     borderRadius: 4,
     backgroundColor: '#1a56db',
   },
   bottomContainer: {
-    paddingHorizontal: 40,
-    paddingBottom: 50,
+    paddingHorizontal: 28,
+    paddingBottom: 44,
   },
   nextButton: {
     backgroundColor: '#1a56db',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow('fab', palette.blue),
   },
   nextText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   getStartedButton: {
     backgroundColor: '#1a56db',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    height: 56,
     alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow('fab', palette.blue),
   },
   getStartedText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

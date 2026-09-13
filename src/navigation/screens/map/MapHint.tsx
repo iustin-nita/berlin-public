@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 
 type MapHintProps = {
   onDismiss: () => void;
 };
 
 export function MapHint({ onDismiss }: MapHintProps) {
+  const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
 
@@ -38,6 +41,7 @@ export function MapHint({ onDismiss }: MapHintProps) {
       style={[
         styles.container,
         {
+          top: insets.top + 170,
           opacity: fadeAnim,
           transform: [{ scale: scaleAnim }],
         },
@@ -46,7 +50,9 @@ export function MapHint({ onDismiss }: MapHintProps) {
       <View style={styles.hint}>
         <View style={styles.arrow} />
         <View style={styles.content}>
-          <Text style={styles.emoji}>👆</Text>
+          <View style={styles.iconCircle}>
+            <Feather name="map-pin" size={24} color="#1a56db" />
+          </View>
           <Text style={styles.title}>Tap any marker</Text>
           <Text style={styles.subtitle}>to see details about the location</Text>
           <Pressable
@@ -66,11 +72,10 @@ export function MapHint({ onDismiss }: MapHintProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 120,
     left: 20,
     right: 20,
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 11,
   },
   hint: {
     backgroundColor: '#ffffff',
@@ -100,8 +105,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  emoji: {
-    fontSize: 32,
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#EFF4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 4,
   },
   title: {
@@ -117,10 +127,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   button: {
-    backgroundColor: '#1976D2',
+    backgroundColor: '#1a56db',
     paddingVertical: 10,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 4,
   },
   buttonText: {

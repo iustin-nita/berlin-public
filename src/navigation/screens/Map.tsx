@@ -11,19 +11,19 @@ import {
 import * as Location from 'expo-location';
 import React from 'react';
 import { ActivityIndicator, Alert, FlatList, Linking, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomSheet from '@gorhom/bottom-sheet';
-import { useFocusEffect } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { FeatureProps } from '../../types/api';
 import { openDirections } from './map/navigationIntents';
-import { CategoryBar } from './map/CategoryBar';
+import { MapTopChrome } from './map/MapTopChrome';
+import { FilterSheet } from './map/FilterSheet';
 import { ChoiceBar } from './map/ChoiceBar';
 import { RecenterButton } from './map/RecenterButton';
 import { DetailsSheet } from './map/DetailsSheet';
 import { MapHint } from './map/MapHint';
 import { StatusBanner } from './map/StatusBanner';
-import { SearchBar } from './map/SearchBar';
 import { ListViewItem } from './map/ListViewItem';
 import { styles } from './Map.styles';
 import { useMapNavigation } from '../MapNavigationContext';
@@ -32,6 +32,9 @@ import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { MapScaleBar } from './map/MapScaleBar';
 import { isInBerlin } from '../../utils/location';
 import { CATEGORIES, CategoryKey, CATEGORY_LIST } from '../../constants/categories';
+import { markerImages as buildMarkerImages, MARKER_ICON_SIZE } from '../../constants/markerAssets';
+import { usePreferences } from '../../preferences/PreferencesContext';
+import { palette } from '../../constants/tokens';
 import { useTheme } from '../../hooks/useTheme';
 import { lightImpact } from '../../utils/haptics';
 import { haversineDistance, formatDistance, walkingEta } from './map/utils';
@@ -41,7 +44,14 @@ const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 
 export function MapScreen() {
   const { isDark, colors } = useTheme();
+  const { markerStyle } = usePreferences();
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  // Height of the floating top chrome (pill + search + chips) — list content
+  // starts below it so rows aren't hidden behind the overlay.
+  const chromeOffset = insets.top + 162;
   const [viewMode, setViewMode] = React.useState<'map' | 'list'>('map');
+  const [filterOpen, setFilterOpen] = React.useState(false);
 
   // Defer Mapbox init to component mount so Fabric native views are ready
   const [mapboxReady, setMapboxReady] = React.useState(false);
@@ -78,7 +88,7 @@ export function MapScreen() {
   // Use caching hook for data management (now category-aware)
   const {
     features, loading, error, cacheAge, isStale, hasCachedData,
-    activeCategories, toggleCategory, refresh,
+    activeCategories, toggleCategory, setCategories, refresh,
   } = useCachedFountainsData();
   const isOnline = useNetworkStatus();
 
@@ -286,19 +296,14 @@ export function MapScreen() {
     return null;
   }, []);
 
-  // Build Mapbox marker images record from active categories
-  const markerImages = React.useMemo(() => {
-    const images: Record<string, any> = {};
-    for (const cat of CATEGORY_LIST) {
-      images[cat.markerImageKey] = cat.markerIcon;
-    }
-    return images;
-  }, []);
+  // Build Mapbox marker images record for the active marker style
+  const markerImages = React.useMemo(() => buildMarkerImages(markerStyle), [markerStyle]);
+  const markerIconSize = MARKER_ICON_SIZE[markerStyle];
 
   // Build SymbolLayers for each active category
   const shapeLayers = React.useMemo(() => {
-    // Cluster palette based on dominant category
-    const clusterPalette = { fill: '#1d8bf1', stroke: '#bfdbfe', glow: 'rgba(29,139,241,0.28)' };
+    // "Clean Berlin" cluster bubbles: solid blue, white ring, soft blue glow.
+    const clusterPalette = { fill: palette.blue, stroke: 'rgba(255,255,255,0.92)', glow: 'rgba(26,86,219,0.26)' };
 
     const layers: React.ReactElement[] = [];
 
@@ -375,7 +380,7 @@ export function MapScreen() {
           filter={["==", ["get", "type"], cat.key] as any}
           style={{
             iconImage: cat.markerImageKey,
-            iconSize: makeSelectedIconSize(cat.markerIconSize),
+            iconSize: makeSelectedIconSize(markerIconSize),
             iconAllowOverlap: true,
             iconIgnorePlacement: true,
             iconAnchor: 'bottom',
@@ -385,7 +390,7 @@ export function MapScreen() {
     }
 
     return layers;
-  }, [selectedId, makeSelectedIconSize, activeCategories]);
+  }, [selectedId, makeSelectedIconSize, activeCategories, markerIconSize]);
 
   // Features sorted by distance for list view
   const sortedFeatures = React.useMemo(() => {
@@ -570,7 +575,15 @@ export function MapScreen() {
 
       {showMapHint && <MapHint onDismiss={handleDismissHint} />}
 
-      <SearchBar onResult={handleSearchResult} />
+      <MapTopChrome
+        onSettings={() => navigation.navigate('Settings')}
+        onSearchResult={handleSearchResult}
+        viewMode={viewMode}
+        onToggleView={handleToggleView}
+        activeCategories={activeCategories}
+        onToggleCategory={toggleCategory}
+        onOpenFilters={() => setFilterOpen(true)}
+      />
 
       {!selected && <StatusBanner
         isOnline={isOnline}
@@ -581,7 +594,6 @@ export function MapScreen() {
         onRefresh={() => { refresh().catch(() => {}); }}
       />}
 
-      <CategoryBar activeCategories={activeCategories} onToggle={toggleCategory} />
       <MapScaleBar
         zoomLevel={cameraZoom}
         latitude={cameraCenter[1]}
@@ -602,15 +614,13 @@ export function MapScreen() {
 
       <RecenterButton onPress={handleRecenter} />
 
-      {/* Map/List toggle */}
-      <Pressable
-        style={[styles.viewToggle, { backgroundColor: colors.chipBg }]}
-        onPress={handleToggleView}
-        accessibilityRole="button"
-        accessibilityLabel={viewMode === 'map' ? 'Switch to list view' : 'Switch to map view'}
-      >
-        <Feather name={viewMode === 'map' ? 'list' : 'map'} size={20} color={colors.text} />
-      </Pressable>
+      <FilterSheet
+        visible={filterOpen}
+        activeCategories={activeCategories}
+        onToggle={toggleCategory}
+        setCategories={setCategories}
+        onClose={() => setFilterOpen(false)}
+      />
 
       {/* List view overlay */}
       {viewMode === 'list' ? (
@@ -618,7 +628,7 @@ export function MapScreen() {
           <FlatList
             data={sortedFeatures}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingTop: chromeOffset }]}
             ListEmptyComponent={<Text style={{ color: colors.textSecondary, padding: 16 }}>{loading ? 'Loading amenities…' : error || 'No amenities found for these categories.'}</Text>}
             renderItem={({ item }) => (
               <ListViewItem

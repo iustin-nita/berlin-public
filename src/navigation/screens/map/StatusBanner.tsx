@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../../../hooks/useTheme';
 
@@ -27,6 +28,7 @@ function formatCacheAge(ageMs: number | null): string {
 
 export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, error, onRefresh }: StatusBannerProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const showOffline = !isOnline;
   const showStale = isOnline && isStale;
   const showOutOfBounds = isOutOfBounds;
@@ -70,7 +72,7 @@ export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, error
   }
 
   return (
-    <View style={[styles.banner, { backgroundColor: bgColor }]}>
+    <View style={[styles.banner, { backgroundColor: bgColor, top: insets.top + 162 }]}>
       <View style={styles.content}>
         {icon}
         <View style={styles.textContainer}>
@@ -95,7 +97,6 @@ export function StatusBanner({ isOnline, cacheAge, isStale, isOutOfBounds, error
 const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
-    top: 100,
     left: 16,
     right: 16,
     borderRadius: 12,

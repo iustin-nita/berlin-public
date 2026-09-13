@@ -22,6 +22,7 @@ type UseCachedDataReturn = {
   hasCachedData: boolean;
   activeCategories: Set<CategoryKey>;
   toggleCategory: (key: CategoryKey) => void;
+  setCategories: (keys: CategoryKey[]) => void;
   refresh: () => Promise<void>;
 };
 
@@ -269,6 +270,11 @@ export function useCachedFountainsData(): UseCachedDataReturn {
     });
   }, []);
 
+  // Selection persistence is handled by the same effect as individual toggles.
+  const setCategories = useCallback((keys: CategoryKey[]) => {
+    setActiveCategories(new Set(keys.length ? keys : DEFAULT_ACTIVE_CATEGORIES));
+  }, []);
+
   // Share promises between refreshes and category changes so no result is lost.
   const fetchCategory = useCallback((key: CategoryKey): Promise<CacheData> => {
     const pending = requests.current.get(key);
@@ -340,5 +346,5 @@ export function useCachedFountainsData(): UseCachedDataReturn {
     return () => { mounted = false; };
   }, [activeCategories, selectionLoaded, fetchActive]);
 
-  return { features, loading, error, cacheAge, isStale, hasCachedData, activeCategories, toggleCategory, refresh };
+  return { features, loading, error, cacheAge, isStale, hasCachedData, activeCategories, toggleCategory, setCategories, refresh };
 }
