@@ -7,14 +7,14 @@ Updated 2026-09-13. Do not confuse uploaded builds or review submission with pub
 - App: `4975257907426970417`, package `com.blobstudio.berlinpublic`.
 - Production release 1.1.0 uses versionCode **31**. EAS build: `17116113-ebd6-4c77-b20f-8807437975e6` (finished).
 - Uploaded bundle accepted; target SDK 36, minimum API 24, existing device support preserved.
-- Sent three changes for review: production full rollout, current privacy policy URL, and corrected Data safety questionnaire. Console shows **Changes in review**, with automatic quick checks still running at this observation. Managed publishing is off.
+- Sent five changes together for review: production full rollout, English description, phone screenshot correction, current privacy policy URL, and corrected Data safety questionnaire. The review was restarted to include the listing corrections. Console shows **Changes in review**, with automatic quick checks still running at the final observation. Managed publishing is off.
 - [Publishing overview](https://play.google.com/console/u/1/developers/5687902761139331902/app/4975257907426970417/publishing).
 
 Data safety now declares optional installation IDs and community reports, plus address-search queries and approximate map-area data sent to providers, for app functionality. Data is encrypted in transit. The app has no account creation or advertising tracking. Provider/service and user-initiated transfer exemptions were applied to the sharing question. No ephemeral-retention exemption was claimed for provider requests because their complete retention behavior is not under our control.
 
 The policy and report-deletion request link point to the current repository privacy policy. Deletion requests cover community reports we can identify; this is not a promise to delete independent provider logs.
 
-The English full description was refreshed to explain voting, optional location, and the distinction between cached amenity information and offline maps. Removed the old "No signal? Still works" marketing screenshot from the listing draft. The original app icon is explicitly named `ChatGPT Image Oct 26, 2025, 07_51_00 PM.png`; it and the feature graphic containing that artwork were labeled as AI-created/edited through Play's asset declaration. The five remaining screenshots retain their existing labels. Canonical description: `metadata/google-play/en-US/full-description.txt`.
+The English full description was refreshed to explain voting, optional location, and the distinction between cached amenity information and offline maps. Removed the old "No signal? Still works" marketing screenshot from the listing submitted for review. The original app icon is explicitly named `ChatGPT Image Oct 26, 2025, 07_51_00 PM.png`; it and the feature graphic containing that artwork were labeled as AI-created/edited through Play's asset declaration. The five remaining screenshots retain their existing labels. Canonical description: `metadata/google-play/en-US/full-description.txt`.
 
 ## App Store
 
@@ -42,3 +42,4 @@ Apple privacy draft declares Other User Content and Device ID, used for app func
 - Android tile loading is improved but intermittent provider timeouts and slow cold loads were observed; cached amenity browsing remains available. See the QA report for scope.
 - Community reports are unverified suggestions under the existing anonymous Supabase policies, not identity-backed votes.
 - Two isolated synthetic report fixtures remain because anonymous deletion is not permitted. No real amenity received a false QA report.
+- QA cleanup: restored iPhone system appearance; Android networking is on. Stopped this session's Metro processes on 8082/8083 and scoped Argent services for the iPhone, iPad and Android emulator. The unrelated RunWeather Metro on 8081 was left alone.
