@@ -30,6 +30,12 @@ The app includes no advertising, analytics, or cross-app tracking SDK. We do not
 
 You can use the app without submitting reports, revoke location permission, remove favorites, and uninstall the app to remove local data. Depending on applicable law, you may request access, correction, deletion, restriction or portability of personal data, object to processing, and complain to a data protection authority. Contact contact@blobstudio.dev to make a request.
 
+## Request deletion of community reports
+
+To request deletion of your Berlin Public community reports, email [contact@blobstudio.dev](mailto:contact@blobstudio.dev) with the subject “Berlin Public data deletion”. Include the amenity names or locations, approximate submission dates, and the statuses you reported so we can identify the relevant records. Do not send passwords or unrelated personal information. We may ask for additional non-sensitive details to identify the reports.
+
+Once the reports are identified, we will delete their installation identifier, amenity reference and coordinates, status, and submission timestamp from our community database. The 60-day summary window is not a deletion schedule. Requests do not remove other users’ reports or public amenity datasets. Service providers may retain operational logs under their own retention policies. Remove favorites and cached data locally by uninstalling the app.
+
 ## Changes
 
 We will update the date on this page when this policy changes.
