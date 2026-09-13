@@ -18,7 +18,7 @@ Date: 2026-09-13. Devices: iPhone 17 Pro / iOS 26.2, Pixel 9a emulator / Android
 ## Still to verify / finish
 
 - Store review outcomes remain pending. The local Android release smoke build is separate from Google's store-signed delivery APKs.
-- Apple privacy publication requires the user's final certification before review submission.
+- Apple privacy label published with the user's explicit approval; iOS submission is WAITING_FOR_REVIEW. Google Play quick checks completed and all five changes are in review.
 
 ## Operational notes
 

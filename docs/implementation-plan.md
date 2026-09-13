@@ -21,12 +21,12 @@ Updated 2026-09-13. The previous plan's blanket completion claim was inaccurate:
 
 See `release-qa-1.1.0.md` for device evidence and pending checks. Jest: 19 tests in 5 suites; TypeScript passes. Expo Doctor and platform exports are part of the release gate.
 
-## Release work in progress
+## Store review pending
 
 - EAS Android production versionCode 31 and iOS build 5 finished successfully.
 - App Store record, version 1.1.0, English metadata, free price, categories, age rating and review contact configured.
-- iPhone and iPad screenshots uploaded; availability configured. Apple processed build 5 as VALID and it is attached to version 1.1.0. Public API validation has no blocking errors. Apple privacy publication awaits the user's final certification.
-- Android versionCode 31, the updated privacy policy URL, and corrected Data safety responses were sent for review. Google Play shows Changes in review while its automatic quick checks run; managed publishing is off, so approval will allow the full rollout.
+- iPhone and iPad screenshots uploaded; availability configured. Apple processed build 5 as VALID and it is attached to version 1.1.0. The user approved the final privacy certification, the label was published, and the release was submitted. Apple status: WAITING_FOR_REVIEW.
+- Android versionCode 31, listing corrections, the updated privacy policy URL, and corrected Data safety responses were sent for review. Google Play's quick checks completed and the console confirms Changes in review. Managed publishing is off, so approval will allow the full rollout.
 
 See `store-release-1.1.0.md` for store identifiers, disclosure details, and remaining steps.
 
