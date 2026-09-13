@@ -17,9 +17,8 @@ Date: 2026-09-13. Devices: iPhone 17 Pro / iOS 26.2, Pixel 9a emulator / Android
 
 ## Still to verify / finish
 
-- Store-signed production artifacts still need validation; standalone local Android release smoke check passed onboarding, map/list navigation, details, persisted favorites and offline voting controls.
-- Android address-search permission recovery.
-- Store upload, privacy declarations, availability and review submission.
+- Store review outcomes remain pending. The local Android release smoke build is separate from Google's store-signed delivery APKs.
+- Apple privacy publication requires the user's final certification before review submission.
 
 ## Operational notes
 
@@ -44,3 +43,6 @@ Date: 2026-09-13. Devices: iPhone 17 Pro / iOS 26.2, Pixel 9a emulator / Android
 - Changed clipboard to a static import after reproducing a Metro lazy-module failure; iPhone Copy link now shows success.
 - Regenerated and replaced all six App Store screenshots with the merged design.
 - Standalone Android release: offline status appears inside details without an overlapping banner; both vote controls disable offline and re-enable online.
+- Android address search after resetting location permission: denial shows "Search needs location access" and keeps map browsing available. Retrying and allowing approximate location successfully centers the rendered map on Alexanderplatz (200 m scale).
+- Final EAS artifacts: Android 31 (1.1.0) accepted by Google Play; iOS 5 (1.1.0) processed as VALID by Apple, bundle com.blobstudio.berlinpublic, SDK 26.5, minimum iOS 16.4.
+- Play confirms no reduction in supported devices. Its only bundle warning is the absent deobfuscation file; R8/minification is not enabled. Native debug symbols are attached.

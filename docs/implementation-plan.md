@@ -23,8 +23,11 @@ See `release-qa-1.1.0.md` for device evidence and pending checks. Jest: 19 tests
 
 ## Release work in progress
 
-- EAS Android production versionCode 31 and iOS build 5 requested.
+- EAS Android production versionCode 31 and iOS build 5 finished successfully.
 - App Store record, version 1.1.0, English metadata, free price, categories, age rating and review contact configured.
-- iPhone and iPad screenshots uploaded; availability configured. Apple privacy publication awaits the final certification. Finish production artifact validation and both store submissions.
+- iPhone and iPad screenshots uploaded; availability configured. Apple processed build 5 as VALID and it is attached to version 1.1.0. Public API validation has no blocking errors. Apple privacy publication awaits the user's final certification.
+- Android versionCode 31, the updated privacy policy URL, and corrected Data safety responses were sent for review. Google Play shows Changes in review while its automatic quick checks run; managed publishing is off, so approval will allow the full rollout.
+
+See `store-release-1.1.0.md` for store identifiers, disclosure details, and remaining steps.
 
 Do not mark this release published until each store confirms its actual submission/release state. Store review is asynchronous.
