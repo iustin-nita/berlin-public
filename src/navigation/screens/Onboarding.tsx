@@ -57,7 +57,7 @@ const SLIDES: {
   },
   {
     id: 4,
-    title: 'Enable Location',
+    title: 'Your Location',
     description: 'Allow location access for distances and nearby search',
     iconName: 'map-pin',
     subtitle: 'Your location stays on your device',
@@ -120,14 +120,6 @@ export function Onboarding() {
     setCurrentIndex(index);
   };
 
-  const handleSkip = async () => {
-    await AsyncStorage.setItem('hasCompletedOnboarding:v1', 'true');
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'HomeTabs' }],
-    });
-  };
-
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
       scrollViewRef.current?.scrollTo({
@@ -137,7 +129,9 @@ export function Onboarding() {
     }
   };
 
-  const handleGetStarted = async () => {
+  // App Review 5.1.1(iv): every exit from onboarding must lead to the system
+  // location prompt; no path may dismiss the pre-permission message without it.
+  const handleFinish = async () => {
     try {
       await Location.requestForegroundPermissionsAsync();
     } catch {}
@@ -154,9 +148,11 @@ export function Onboarding() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.topRow}>
         <BrandMark imageSize={26} spacing={8} textStyle={styles.brandText} />
-        <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        {!isLastSlide && (
+          <TouchableOpacity onPress={handleFinish} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <Animated.ScrollView
@@ -202,9 +198,9 @@ export function Onboarding() {
         {isLastSlide ? (
           <TouchableOpacity
             style={styles.getStartedButton}
-            onPress={handleGetStarted}
+            onPress={handleFinish}
           >
-            <Text style={styles.getStartedText}>Get Started</Text>
+            <Text style={styles.getStartedText}>Continue</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
