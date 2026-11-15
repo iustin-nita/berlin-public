@@ -78,3 +78,11 @@ For deletion requests, identify the installation/amenity records and delete the 
 - Signed iOS/Android builds and store updates remain pending. Initial attempts and retries exhausted disk space; only this task's old compiler caches were removed, preserving build 9's simulator app, archive, IPA, source, and private report backups. Owner direction is requested before another build attempt; retry serially and use a new Android versionCode.
 - ASC checked: iOS 1.1.0 remains PREPARE_FOR_SUBMISSION with VALID build 9; migration requires build 10 or newer.
 - Google Play checked: Android 1.1.0 (31) is Available on Google Play, released September 13, with no unpublished changes. It still embeds the legacy URL and needs a new signed bundle/review.
+
+## Legacy Supabase exposure (2026-11-15)
+
+The legacy Supabase project `ryeqylmoxygkjolhcpme` let anyone with the anon key, which is embedded in old store binaries, read every report, including `device_id`. The same IDs were migrated to D1, where they are the only credential for a user's own vote.
+
+- The project is paused (DNS does not resolve), so the anon key reads nothing. **Do not resume it.**
+- Once no supported store build points at Supabase (iOS build 10+ and the next Android release are live), delete the project. The private October 1 export in `.asc/` remains the backup.
+- New installation IDs come from `expo-crypto` `randomUUID()` instead of `Math.random`. Existing IDs keep working.
