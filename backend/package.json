@@ -1,0 +1,19 @@
+{
+  "name": "berlin-public-community-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply berlin-public-community --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260930.2",
+    "@types/node": "^22.18.0",
+    "miniflare": "5.20260926.1-alpha",
+    "typescript": "~6.0.3",
+    "wrangler": "4.144.0"
+  }
+}

@@ -5,9 +5,11 @@ import withMapLibreNetworking from './plugins/withMapLibreNetworking.js';
 
 // Dynamic Expo config equivalent of app.json
 
-// Supabase configuration (provided via env in dev/build)
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Public Worker URL only; database credentials never belong in the app.
+const COMMUNITY_API_URL = process.env.COMMUNITY_API_URL;
+if (process.env.EAS_BUILD === 'true' && !COMMUNITY_API_URL?.startsWith('https://')) {
+  throw new Error('Set COMMUNITY_API_URL to the deployed HTTPS Worker before building a store release');
+}
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -22,6 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.blobstudio.berlinpublic',
+    buildNumber: '10',
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
@@ -43,6 +46,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
   },
   plugins: [
+    [
+      'expo-build-properties',
+      {
+        ios: {
+          enableSceneSupport: true,
+        },
+      },
+    ],
     withAndroidPlayConsoleFixes as any,
     withFixReanimatedWorklets as any,
     withMapLibreNetworking as any,
@@ -64,9 +75,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     '@maplibre/maplibre-react-native',
   ],
   extra: {
-    // Make Supabase runtime config available to the app
-    supabaseUrl: SUPABASE_URL,
-    supabaseAnonKey: SUPABASE_ANON_KEY,
+    communityApiUrl: COMMUNITY_API_URL,
     eas: {
       projectId: '3b7bdd53-574d-4362-ae7c-6d9883b4dfca',
     },

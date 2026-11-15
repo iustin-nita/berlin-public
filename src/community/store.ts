@@ -25,4 +25,4 @@ export interface StatusSummary {
 
 // Community reports must reach the shared backend; local-only writes cannot
 // truthfully be shown as shared votes. A missing service returns an error.
-export { getStatus, submitReport } from './storeSupabase';
+export { getStatus, submitReport } from './storeApi';

@@ -12,6 +12,7 @@
 - `npm run ios` / `npm run android` — build and install the native dev client on the current simulator/device. Use after native dependency changes.
 - `npm run web` — quick smoke test in a browser; MapLibre features are native-only, so expect reduced functionality.
 - For release artifacts, use `npm run build:apk` or `npm run build:aab`; both require a configured native toolchain.
+- The Cloudflare API lives in `backend/`: run `npm --prefix backend install`, `npm run test:backend` (Node's built-in runner + local D1), and `npm --prefix backend run typecheck`. See `docs/community-backend.md` for deployment and migration.
 
 ## Coding Style & Naming Conventions
 - TypeScript is mandatory; prefer explicit types for public APIs and React props. Favor functional components with hooks.
@@ -31,5 +32,5 @@
 - Request review from owners of affected modules (`navigation`, `favorites`, `map`) and ensure CI/Expo preview links are attached if available.
 
 ## MapLibre & Configuration Tips
-- MapLibre uses keyless OpenFreeMap tiles. Supabase URL and anon key come from local env or the EAS environment; never commit credentials.
+- MapLibre uses keyless OpenFreeMap tiles. Community reports use Cloudflare Workers + D1; only the public `COMMUNITY_API_URL` belongs in local/EAS app configuration. Never commit Cloudflare credentials or private report backups.
 - The app relies on native dev builds. When adjusting native modules or permissions, increment config versions to trigger regeneration and document the change in `docs/implementation-plan.md`.

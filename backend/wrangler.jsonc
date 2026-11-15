@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "berlin-public-community",
+  "account_id": "4c0d84d724368093cbd180c0691e187f",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "berlin-public-community",
+      "database_id": "565dbf5a-4ddc-4b2a-9012-d50488ef83fc",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    { "name": "READ_LIMITER", "namespace_id": "121810031", "simple": { "limit": 120, "period": 60 } },
+    { "name": "WRITE_LIMITER", "namespace_id": "121810032", "simple": { "limit": 10, "period": 60 } },
+    { "name": "IP_LIMITER", "namespace_id": "121810033", "simple": { "limit": 600, "period": 60 } },
+    { "name": "IP_WRITE_LIMITER", "namespace_id": "121810034", "simple": { "limit": 30, "period": 60 } }
+  ]
+}

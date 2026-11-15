@@ -1,6 +1,24 @@
 # Store release 1.1.0
 
-Updated 2026-09-13. Do not confuse uploaded builds or review submission with public availability.
+Updated 2026-10-01. Do not confuse uploaded builds or review submission with public availability.
+
+## Backend replacement check — 2026-10-01
+
+The user approved the scoped Wrangler permission grant. The Worker is live at `https://berlin-public-community.iustin-nitza.workers.dev`; EU-jurisdiction D1 contains all 32 legacy reports with exact source/destination fingerprint equality. Live creation/replacement, summary privacy, validation, and database-backed health pass; the synthetic cutover report was removed. The public endpoint is configured locally and in EAS production, and the updated privacy policy is published.
+
+Fresh store checks confirm iOS 1.1.0 is PREPARE_FOR_SUBMISSION with VALID build 9 attached, and Android 1.1.0 (31) is Available on Google Play, released September 13, with no unpublished changes. Both binaries still embed Supabase configuration. Neither endpoint can be changed remotely: the app has no Expo OTA runtime.
+
+Standalone iOS build 10 passes iOS 27 iPhone/iPad startup, map, community-read, favorite-persistence, and category-toggle checks. Signed iOS/Android attempts and retries exhausted disk space; no signed migration artifact is ready, uploaded, or submitted. Disposable compiler-cache cleanup preserved build 9 artifacts; failed Android attempts consumed versionCodes 33 and 34. Automatic workspace cleanup restored approximately 7.6 GB, but the native-build recovery rule requires owner direction before another attempt. Retry one platform at a time and use a higher Android versionCode. ASC API auth works; the browser session needs sign-in to recheck privacy/agreements. Keep the source project and existing exports intact.
+
+## Latest App Store recovery status
+
+- September 22 rejection: version 1.1.0/build 8 crashed at launch on iOS 27 because the generated app had no scene-lifecycle integration.
+- Fixed with Expo 57.0.26 and the supported scene plugin; regenerated and tested a standalone Release app on iOS 27 iPhone and iPad simulators. See `release-qa-1.1.0.md` for evidence and test scope.
+- Replacement build **9**, `967b5d67-77cf-4b49-ba60-308edd344c26`, uploaded locally through ASC and processed **VALID**. It is attached to version `1be6aa43-6298-450f-bf3d-2b82da7c697d` (1.1.0).
+- Existing submission `90394766-2410-494f-967b-fd796d65f22d` has unresolved issues. Do not create a duplicate submission or describe this build as resubmitted/published yet.
+- Resubmission held: the existing Supabase project `berlin-public` is paused, leaving community status unavailable. Permission requested to resume the existing Free project, then verify reporting before recovering the existing review submission. Automatic release after approval remains the intended release mode.
+
+The September 13 store records below are historical.
 
 ## Google Play
 
@@ -41,6 +59,16 @@ The published Apple privacy label declares Other User Content and Device ID, use
 ## Remaining operational limits
 
 - Android tile loading is improved but intermittent provider timeouts and slow cold loads were observed; cached amenity browsing remains available. See the QA report for scope.
-- Community reports are unverified suggestions under the existing anonymous Supabase policies, not identity-backed votes.
-- Two isolated synthetic report fixtures remain because anonymous deletion is not permitted. No real amenity received a false QA report.
+- Community reports are unverified suggestions keyed by an anonymous installation ID, not identity-backed votes. Limits: per installation, per IP, and per-IP writes (30/min) on the Cloudflare Worker.
 - QA cleanup: restored iPhone system appearance; Android networking is on. Stopped this session's Metro processes on 8082/8083 and scoped Argent services for the iPhone, iPad and Android emulator. The unrelated RunWeather Metro on 8081 was left alone.
+
+## Resubmission after rejections (2026-11-15)
+
+Rejections: 5.1.1(iv) on build 5 (Sep 19), Skip bypassed the location prompt; 2.1(a) on build 8 (Sep 22), crash on launch on iOS 27 because the app had no UIScene lifecycle.
+
+- Fixes: `expo-build-properties` `ios.enableSceneSupport` (EXExpoAppSceneDelegate); every onboarding exit calls `requestForegroundPermissionsAsync`; no Skip on the location slide.
+- Community backend moved from Supabase to the Cloudflare Worker + D1. Worker deployed (version fa9d21fb), `/health` ok.
+- iOS build 1.1.0 (10): signed locally (`.asc/build-10-signed.sh`), VALID, attached to version 1.1.0. Tested on iOS 27 simulators (iPhone 17 Pro Max, iPad Air 11 M3) and on a real iPhone via TestFlight (internal group "Internal Testers").
+- Review notes explain both fixes. Attachment: `berlin-public-1.1.0-10-ios27-fresh-install.mp4` (fresh install, onboarding, system prompt, map). The ASC web reply was not posted (no web session).
+- Existing submission `90394766-2410-494f-967b-fd796d65f22d`: rejected item marked resolved, resubmitted 2026-11-15T12:32Z. `asc review status`: WAITING_FOR_REVIEW.
+- Android 1.1.0 (versionCode 36, EAS cloud build): internal testing, then promoted to production with a 10% staged rollout (about 3 of 27 active installs). Sent for Google review 2026-11-15. Raise the rollout in Play Console after review if vitals stay clean.

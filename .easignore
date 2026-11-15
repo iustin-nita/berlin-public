@@ -16,6 +16,7 @@ public/
 .env*.local
 .claude/
 .asc/
+backend/
 credentials.json
 *.p8
 *.p12

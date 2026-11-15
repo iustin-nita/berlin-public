@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
 
 const DEVICE_ID_KEY = 'community:device_id';
 let deviceIdPromise: Promise<string> | undefined;
@@ -22,7 +23,6 @@ async function loadDeviceId(): Promise<string> {
       return existing;
     }
 
-    // Generate new device ID (simple random string)
     const deviceId = generateRandomId();
     await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId);
     return deviceId;
@@ -34,13 +34,9 @@ async function loadDeviceId(): Promise<string> {
 }
 
 /**
- * Generate a random alphanumeric ID for device identification.
+ * The installation ID is the only credential for a user's own vote, so it
+ * must come from a cryptographically secure source, not Math.random.
  */
 function generateRandomId(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 16; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return Crypto.randomUUID();
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Berlin Public — an Expo/React Native app for finding public fountains, toilets, and amenities in Berlin. Uses MapLibre + OpenFreeMap for maps, Supabase for community features, and Berlin Open Data WFS endpoints for fountain/toilet data.
+Berlin Public — an Expo/React Native app for finding public fountains, toilets, and amenities in Berlin. Uses MapLibre + OpenFreeMap for maps, a Cloudflare Worker + D1 (`backend/`) for community features, and Berlin Open Data WFS endpoints for fountain/toilet data.
 
 **Requires dev builds** (not Expo Go) due to the MapLibre native module. New Architecture is enabled (SDK 55 default).
 
@@ -51,16 +51,16 @@ The main screen. Heavy module with sub-components being extracted into `map/`:
 
 ### Other Modules
 - `src/favorites/` — FavoritesContext + AsyncStorage persistence
-- `src/community/` — Supabase-backed community status (voting, device ID, store)
+- `src/community/` — community status (voting, device ID, store) via the Worker API (`storeApi.ts`)
 - `src/hooks/useNetworkStatus.ts` — online/offline detection
 - `src/utils/location.ts` — location utilities
 - `src/components/BrandMark.tsx` — shared branding component
 - `src/navigation/MapNavigationContext.tsx` — cross-screen map coordination
 
 ### Configuration
-- `app.config.ts` — dynamic Expo config; Supabase config, scheme, plugins
+- `app.config.ts` — dynamic Expo config; community API URL, scheme, plugins (incl. iOS scene support)
 - Maps use MapLibre + OpenFreeMap — no token/key required
-- Supabase via `SUPABASE_URL` and `SUPABASE_ANON_KEY` env vars
+- Community API via `COMMUNITY_API_URL` env var (public HTTPS Worker URL; see `docs/community-backend.md`)
 
 ## Key Conventions
 
