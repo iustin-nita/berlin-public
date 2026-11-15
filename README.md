@@ -61,7 +61,7 @@ Plus everything you need to actually use them:
 - **MapLibre Native** + **[OpenFreeMap](https://openfreemap.org/)** vector tiles — free, keyless, OpenStreetMap-based
 - **React Navigation** v7 (native-stack + bottom-tabs, static config)
 - **TypeScript** (strict)
-- **Supabase** for community status reports
+- **Cloudflare Workers + D1** for community status reports
 - Offline-first caching with **AsyncStorage**
 
 ## Data Sources
@@ -83,8 +83,8 @@ Plus everything you need to actually use them:
    ```sh
    cp .env.example .env
    ```
-   Maps need **no key** (MapLibre + OpenFreeMap). Supabase credentials are optional —
-   without them, community reporting is unavailable. Production builds must use the configured EAS environment. See
+   Maps need **no key** (MapLibre + OpenFreeMap). Set the public `COMMUNITY_API_URL` —
+   without it, community reporting is unavailable. Database credentials are never included in the app. See
    [`.env.example`](.env.example) for what each variable does.
 
 3. Start the dev server:
@@ -103,6 +103,10 @@ Plus everything you need to actually use them:
 are generated. Regenerate them with `npm run prebuild` instead of editing by hand.
 
 ## Contributing
+
+The community API lives in `backend/`. Run `npm --prefix backend install`,
+`npm run test:backend`, and `npm --prefix backend run typecheck` for its D1 integration tests.
+Deployment and migration instructions are in [docs/community-backend.md](docs/community-backend.md).
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for
 setup, conventions, and the pull-request process. By participating you agree to

@@ -1,6 +1,6 @@
 # Privacy Policy for Berlin Public
 
-**Last updated:** September 13, 2026
+**Last updated:** October 1, 2026
 
 Berlin Public is provided by Iustin Nita (Blob Studio). You can contact us at contact@blobstudio.dev about privacy, access to your data, or deletion requests.
 
@@ -12,7 +12,9 @@ Address searches use your device's geocoding service, which may send your search
 
 ## Community reports
 
-No account is required. When you report an amenity as working or not working, the app sends the amenity's identifier and coordinates, your selected status, the submission time, and a randomly generated installation identifier to our Supabase database. This identifier lets a later report replace your previous report for the same amenity. It is not your advertising identifier, name, email address, or live location.
+No account is required. When you report an amenity as working or not working, the app sends the amenity's identifier and coordinates, your selected status, and a randomly generated installation identifier to our Cloudflare Workers API. The API records the submission time and stores the report in Cloudflare D1. This identifier lets a later report replace your previous report for the same amenity. It is not your advertising identifier, name, email address, or live location. Public status responses include shared totals, the latest report's status and time, and your own vote; they do not include other installation identifiers or individual report rows.
+
+Earlier app builds use Supabase. Existing reports are migrated to D1 with their installation identifiers and timestamps so your prior vote remains associated with the same installation after an app update. The legacy Supabase project and private migration backups may retain existing reports during the transition; deletion requests also cover these copies. Please update the app to use the replacement service.
 
 Community report data is used to calculate shared status summaries. Reports from the last 60 days contribute to the displayed summary; this display window does not automatically delete older database records. Uninstalling the app removes its local data but does not delete reports already submitted. Contact us for help with a deletion request; we may need information to identify your reports without collecting unnecessary personal data.
 
@@ -22,7 +24,7 @@ Favorites, filter and sort preferences, onboarding preferences, the installation
 
 ## Service providers
 
-The app connects to Berlin's public GIS services for amenity data, OpenFreeMap for map styles and tiles, and Supabase for community reports. These services receive network information such as your IP address when a request is made and may maintain operational logs under their own policies. External navigation apps and your device's geocoding provider process requests under their own policies.
+The app connects to Berlin's public GIS services for amenity data, OpenFreeMap for map styles and tiles, and Cloudflare for community reports. Earlier app builds connect to Supabase for reports. These services receive network information such as your IP address when a request is made and may maintain operational logs under their own policies. The community API uses your installation identifier and IP address for short-lived rate limiting to limit abuse; it does not store IP addresses in report records or log report payloads. Our D1 database uses Cloudflare's EU jurisdiction setting for database storage and execution, but network/API processing is not restricted to the EU. External navigation apps and your device's geocoding provider process requests under their own policies.
 
 The app includes no advertising, analytics, or cross-app tracking SDK. We do not sell personal data.
 

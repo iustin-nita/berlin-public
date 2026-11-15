@@ -31,3 +31,27 @@ See `release-qa-1.1.0.md` for device evidence and pending checks. Jest: 19 tests
 See `store-release-1.1.0.md` for store identifiers, disclosure details, and remaining steps.
 
 Do not mark this release published until each store confirms its actual submission/release state. Store review is asynchronous.
+
+## iOS 27 launch-crash recovery
+
+Updated 2026-09-30. Apple rejected 1.1.0 (8) on September 22 under guideline 2.1(a). Its crash report stops in `___UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption_block_invoke` before React Native starts.
+
+- Update Expo within SDK 57 to 57.0.26 and add `expo-build-properties` 57.0.22.
+- Enable `ios.enableSceneSupport` in the config plugin so prebuild generates Expo's scene delegate integration and `UIApplicationSceneManifest`.
+- Use iOS build number 9, regenerate the iOS project, and verify a standalone Release build on iOS 27.
+- Rebuild, upload through ASC, validate the existing version, and recover the existing review submission after successful verification.
+
+Release simulator tests pass on iOS 27 iPhone and iPad; TypeScript and all 19 Jest tests pass. Signed build 9 is uploaded, processed VALID, and attached to 1.1.0. Resubmission is held because the existing Supabase project is paused; permission to resume the Free project has been requested. Evidence and current state are recorded in the release QA and store release documents.
+
+## Community backend migration
+
+Requested 2026-09-30: replace Supabase's manually paused Free database with Cloudflare D1 behind a Worker.
+
+- Preserve existing reports, installation identities, timestamps, one-vote-per-amenity semantics, 60-day summaries, and 14-day decay.
+- Add versioned HTTPS API routes, prepared database queries, input limits, server timestamps, rate limiting, and summaries that do not expose other installation IDs.
+- Export the source twice, compare fingerprints, retain a private backup, import idempotently, and verify all destination records.
+- Remove the mobile Supabase SDK and credentials; configure only the public API URL.
+- Update and publish the privacy policy, test release startup and online/offline behavior, build iOS 10 or newer, and check both stores for required submissions.
+- Keep the legacy source intact during migration. Existing store binaries cannot switch endpoints without an app update; no Expo OTA runtime is installed.
+
+Updated 2026-10-01: the owner approved Wrangler access; EU D1 is created, all 32 reports are imported with exact destination fingerprint verification, and the Worker is deployed and passes live read/write/privacy checks. Local and EAS production configuration use the public endpoint, and the revised privacy policy is published. All 24 app tests, 12 backend tests, and both TypeScript checks pass. Standalone build 10 passes iOS 27 iPhone/iPad startup and key UI checks. Signed builds and retries exhausted disk space, so store submissions remain pending and the native-build recovery workflow requests owner direction before another attempt. Retry serially after confirming available space, and reauthenticate the Apple browser session for privacy/agreements checks. See `community-backend.md` for the runbook.

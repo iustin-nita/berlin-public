@@ -5,5 +5,5 @@
     "types": ["jest", "node", "react"],
     "strict": true
   },
-  "exclude": ["node_modules", "tools", "ios", "android"]
+  "exclude": ["node_modules", "tools", "ios", "android", "backend"]
 }
