@@ -18,6 +18,7 @@
   "ratelimits": [
     { "name": "READ_LIMITER", "namespace_id": "121810031", "simple": { "limit": 120, "period": 60 } },
     { "name": "WRITE_LIMITER", "namespace_id": "121810032", "simple": { "limit": 10, "period": 60 } },
-    { "name": "IP_LIMITER", "namespace_id": "121810033", "simple": { "limit": 600, "period": 60 } }
+    { "name": "IP_LIMITER", "namespace_id": "121810033", "simple": { "limit": 600, "period": 60 } },
+    { "name": "IP_WRITE_LIMITER", "namespace_id": "121810034", "simple": { "limit": 30, "period": 60 } }
   ]
 }

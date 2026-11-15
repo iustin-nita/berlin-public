@@ -3,6 +3,7 @@ export interface Env {
   READ_LIMITER: RateLimit;
   WRITE_LIMITER: RateLimit;
   IP_LIMITER: RateLimit;
+  IP_WRITE_LIMITER: RateLimit;
 }
 
 type ReportStatus = 'working' | 'not_working';
@@ -134,8 +135,11 @@ export default {
     if (route === '/v1/status' && !isFeatureId(url.searchParams.get('featureId'))) return json({ error: 'Invalid amenity' }, 400);
     try {
       const ip = request.headers.get('CF-Connecting-IP');
-      const limiter = request.method === 'POST' ? env.WRITE_LIMITER : env.READ_LIMITER;
-      const limits = await Promise.all([limiter.limit({ key: deviceId }), ...(ip ? [env.IP_LIMITER.limit({ key: ip })] : [])]);
+      const isWrite = request.method === 'POST';
+      const limiter = isWrite ? env.WRITE_LIMITER : env.READ_LIMITER;
+      // Installation IDs are client-chosen, so writes are also capped per IP.
+      const ipLimits = ip ? [env.IP_LIMITER.limit({ key: ip }), ...(isWrite ? [env.IP_WRITE_LIMITER.limit({ key: ip })] : [])] : [];
+      const limits = await Promise.all([limiter.limit({ key: deviceId }), ...ipLimits]);
       if (limits.some((limit) => !limit.success)) return json({ error: 'Too many requests. Please try again shortly.' }, 429, { 'Retry-After': '60' });
       return route === '/v1/status' ? await getSummary(env, url.searchParams.get('featureId')!, deviceId) : await saveReport(request, env, deviceId);
     } catch {

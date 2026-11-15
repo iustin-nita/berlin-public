@@ -13,7 +13,7 @@ before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default { fetch() { return new Response("test"); } };', d1Databases: ['DB'] }));
   const db = await mf.getD1Database('DB');
   await db.exec((await readFile(new URL('../migrations/0001_reports.sql', import.meta.url), 'utf8')).replace(/\n/g, ' '));
-  env = { DB: db as unknown as D1Database, READ_LIMITER: allow, WRITE_LIMITER: allow, IP_LIMITER: allow };
+  env = { DB: db as unknown as D1Database, READ_LIMITER: allow, WRITE_LIMITER: allow, IP_LIMITER: allow, IP_WRITE_LIMITER: allow };
 });
 after(async () => { await mf?.dispose(); });
 beforeEach(async () => {
@@ -21,6 +21,7 @@ beforeEach(async () => {
   env.READ_LIMITER = allow;
   env.WRITE_LIMITER = allow;
   env.IP_LIMITER = allow;
+  env.IP_WRITE_LIMITER = allow;
 });
 
 function get(featureId = 'test.feature/1', identity = deviceId): Promise<Response> {
@@ -110,6 +111,17 @@ test('installation and IP limits return 429 without changing data', async () => 
   env.READ_LIMITER = allow;
   env.IP_LIMITER = { limit: async () => ({ success: false }) } as RateLimit;
   assert.equal((await worker.fetch(new Request('https://community.test/v1/status?featureId=test', { headers: { 'X-Device-ID': deviceId, 'CF-Connecting-IP': '192.0.2.1' } }), env)).status, 429);
+});
+
+test('per-IP write limit blocks writes from rotated installation IDs but not reads', async () => {
+  env.IP_WRITE_LIMITER = { limit: async () => ({ success: false }) } as RateLimit;
+  const headers = (id: string) => ({ 'Content-Type': 'application/json', 'X-Device-ID': id, 'CF-Connecting-IP': '192.0.2.1' });
+  for (const id of ['rotated-device-1', 'rotated-device-2']) {
+    const response = await worker.fetch(new Request('https://community.test/v1/reports', { method: 'POST', headers: headers(id), body: JSON.stringify({ featureId: 'test', status: 'working' }) }), env);
+    assert.equal(response.status, 429);
+  }
+  assert.equal((await env.DB.prepare('SELECT COUNT(*) AS count FROM reports').first<{ count: number }>())?.count, 0);
+  assert.equal((await worker.fetch(new Request('https://community.test/v1/status?featureId=test', { headers: headers('rotated-device-1') }), env)).status, 200);
 });
 
 test('service failures do not become zero-vote summaries', async () => {
