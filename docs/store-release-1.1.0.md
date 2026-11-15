@@ -59,6 +59,16 @@ The published Apple privacy label declares Other User Content and Device ID, use
 ## Remaining operational limits
 
 - Android tile loading is improved but intermittent provider timeouts and slow cold loads were observed; cached amenity browsing remains available. See the QA report for scope.
-- Community reports are unverified suggestions under the existing anonymous Supabase policies, not identity-backed votes.
-- Two isolated synthetic report fixtures remain because anonymous deletion is not permitted. No real amenity received a false QA report.
+- Community reports are unverified suggestions keyed by an anonymous installation ID, not identity-backed votes. Limits: per installation, per IP, and per-IP writes (30/min) on the Cloudflare Worker.
 - QA cleanup: restored iPhone system appearance; Android networking is on. Stopped this session's Metro processes on 8082/8083 and scoped Argent services for the iPhone, iPad and Android emulator. The unrelated RunWeather Metro on 8081 was left alone.
+
+## Resubmission after rejections (2026-11-15)
+
+Rejections: 5.1.1(iv) on build 5 (Sep 19), Skip bypassed the location prompt; 2.1(a) on build 8 (Sep 22), crash on launch on iOS 27 because the app had no UIScene lifecycle.
+
+- Fixes: `expo-build-properties` `ios.enableSceneSupport` (EXExpoAppSceneDelegate); every onboarding exit calls `requestForegroundPermissionsAsync`; no Skip on the location slide.
+- Community backend moved from Supabase to the Cloudflare Worker + D1. Worker deployed (version fa9d21fb), `/health` ok.
+- iOS build 1.1.0 (10): signed locally (`.asc/build-10-signed.sh`), VALID, attached to version 1.1.0. Tested on iOS 27 simulators (iPhone 17 Pro Max, iPad Air 11 M3) and on a real iPhone via TestFlight (internal group "Internal Testers").
+- Review notes explain both fixes. Attachment: `berlin-public-1.1.0-10-ios27-fresh-install.mp4` (fresh install, onboarding, system prompt, map). The ASC web reply was not posted (no web session).
+- Existing submission `90394766-2410-494f-967b-fd796d65f22d`: rejected item marked resolved, resubmitted 2026-11-15T12:32Z. `asc review status`: WAITING_FOR_REVIEW.
+- Android 1.1.0 (versionCode 36, EAS cloud build): internal testing, then promoted to production with a 10% staged rollout (about 3 of 27 active installs). Sent for Google review 2026-11-15. Raise the rollout in Play Console after review if vitals stay clean.

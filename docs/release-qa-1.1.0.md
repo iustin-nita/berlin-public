@@ -77,3 +77,10 @@ Date: 2026-09-13. Devices: iPhone 17 Pro / iOS 26.2, Pixel 9a emulator / Android
 - Android address search after resetting location permission: denial shows "Search needs location access" and keeps map browsing available. Retrying and allowing approximate location successfully centers the rendered map on Alexanderplatz (200 m scale).
 - Final EAS artifacts: Android 31 (1.1.0) accepted by Google Play; iOS 5 (1.1.0) processed as VALID by Apple, bundle com.blobstudio.berlinpublic, SDK 26.5, minimum iOS 16.4.
 - Play confirms no reduction in supported devices. Its only bundle warning is the absent deobfuscation file; R8/minification is not enabled. Native debug symbols are attached.
+
+## Build 1.1.0 (10) QA (2026-11-15)
+
+- iOS 27 simulators, fresh install, iPhone 17 Pro Max and iPad Air 11 M3: cold launch with no crash; Skip on slides 1-3 and Continue on the last slide each open the system location prompt; the last slide has no Skip; deny leaves the app usable; the community summary loads from the Worker.
+- Real iPhone, TestFlight build 10: launches and works (owner check).
+- Video for App Review: `.asc/artifacts/berlin-public-1.1.0-10-ios27-fresh-install.mp4`.
+- Tests: app 26/26, backend 13/13.
