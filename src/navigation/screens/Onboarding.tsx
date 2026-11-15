@@ -9,12 +9,14 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Animated, {
   useSharedValue,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   interpolate,
   Extrapolate,
   type SharedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { Feather } from '@expo/vector-icons';
@@ -107,6 +109,7 @@ export function Onboarding() {
   const scrollViewRef = useRef<Animated.ScrollView>(null);
   const scrollX = useSharedValue(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const isFinishing = useRef(false);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -114,11 +117,14 @@ export function Onboarding() {
     },
   });
 
-  const handleScroll = (event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / width);
-    setCurrentIndex(index);
-  };
+  // Track the visible slide during the swipe, not only when momentum ends, so
+  // Skip never shows next to the location message.
+  useAnimatedReaction(
+    () => Math.round(scrollX.value / width),
+    (index, previous) => {
+      if (index !== previous) scheduleOnRN(setCurrentIndex, index);
+    },
+  );
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
@@ -132,6 +138,8 @@ export function Onboarding() {
   // App Review 5.1.1(iv): every exit from onboarding must lead to the system
   // location prompt; no path may dismiss the pre-permission message without it.
   const handleFinish = async () => {
+    if (isFinishing.current) return;
+    isFinishing.current = true;
     try {
       await Location.requestForegroundPermissionsAsync();
     } catch {}
@@ -161,7 +169,6 @@ export function Onboarding() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={scrollHandler}
-        onMomentumScrollEnd={handleScroll}
         scrollEventThrottle={16}
         style={styles.scrollView}
       >
